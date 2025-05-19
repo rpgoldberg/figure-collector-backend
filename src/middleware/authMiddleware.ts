@@ -64,7 +64,7 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
         message: 'Not authorized as admin'
       });
     }
-  } catch (error: unknown) {
+  } catch (error: Error) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
