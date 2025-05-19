@@ -43,7 +43,7 @@ export const registerUser = async (req: Request, res: Response) => {
         token: generateToken(user._id.toString())
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -87,7 +87,7 @@ export const loginUser = async (req: Request, res: Response) => {
         token: generateToken(user._id.toString())
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -112,7 +112,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
       success: true,
       data: user
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -151,7 +151,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
         isAdmin: user.isAdmin
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',

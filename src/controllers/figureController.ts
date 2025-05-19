@@ -27,7 +27,7 @@ export const getFigures = async (req: Request, res: Response) => {
       total,
       data: figures
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -56,7 +56,7 @@ export const getFigureById = async (req: Request, res: Response) => {
       success: true,
       data: figure
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -74,7 +74,7 @@ const extractImageFromMFC = async (mfcLink: string): Promise<string | null> => {
     // This is a basic scraper - the actual selector may need adjustment
     const imageUrl = $('.headline + .container .item-picture img').attr('src');
     return imageUrl || null;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error extracting image from MFC: ${error.message}`);
     return null;
   }
@@ -107,7 +107,7 @@ export const createFigure = async (req: Request, res: Response) => {
       success: true,
       data: figure
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -162,7 +162,7 @@ export const updateFigure = async (req: Request, res: Response) => {
       success: true,
       data: figure
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -196,7 +196,7 @@ export const deleteFigure = async (req: Request, res: Response) => {
       success: true,
       message: 'Figure removed successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -280,7 +280,7 @@ export const searchFigures = async (req: Request, res: Response) => {
       count: hits.length,
       data: hits
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -321,7 +321,7 @@ export const filterFigures = async (req: Request, res: Response) => {
       total,
       data: figures
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -368,7 +368,7 @@ export const getFigureStats = async (req: Request, res: Response) => {
         locationStats
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
