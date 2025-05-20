@@ -12,4 +12,6 @@ RUN npm run build
 
 EXPOSE 5000
 
+RUN apk add --no-cache curl
+
 CMD ["npm", "start"]
