@@ -21,8 +21,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 connectDB();
 
 // Routes
-app.use('/api/figures', figureRoutes);
-app.use('/api/users', userRoutes);
+app.use('/figures', figureRoutes);
+app.use('/users', userRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
