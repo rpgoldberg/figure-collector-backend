@@ -217,6 +217,9 @@ export const searchFigures = async (req: Request, res: Response) => {
         message: 'Search query is required'
       });
     }
+
+    // Convert userId to ObjectId for the filter
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     
     // MongoDB Atlas Search query
     const searchResults = await Figure.aggregate([
@@ -240,7 +243,7 @@ export const searchFigures = async (req: Request, res: Response) => {
               {
                 equals: {
                   path: 'userId',
-                  value: userId
+                  value: userObjectId // Use ObjectId instead of string
                 }
               }
             ]
