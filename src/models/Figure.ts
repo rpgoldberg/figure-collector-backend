@@ -19,8 +19,8 @@ const FigureSchema = new Schema<IFigure>(
     name: { type: String, required: true, index: true },
     scale: { type: String, required: true },
     mfcLink: { type: String, required: true },
-    location: { type: String, required: true },
-    boxNumber: { type: String, required: true },
+    location: { type: String, required: false },
+    boxNumber: { type: String, required: false },
     imageUrl: { type: String },
     userId: { 
       type: Schema.Types.ObjectId, 
