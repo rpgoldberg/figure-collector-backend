@@ -11,7 +11,7 @@ COPY . .
 
 RUN npm run build
 
-EXPOSE 5050
+EXPOSE 5060
 
 RUN apk add --no-cache curl
 
