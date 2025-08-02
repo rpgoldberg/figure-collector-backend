@@ -52,7 +52,7 @@ const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
     console.log('MFC Scraping results:', scrapedData);
     return scrapedData;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error scraping MFC data: ${error.message}`);
     return {};
   }
@@ -76,7 +76,7 @@ export const scrapeMFCData = async (req: Request, res: Response) => {
       success: true,
       data: scrapedData
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -196,7 +196,7 @@ export const createFigure = async (req: Request, res: Response) => {
       success: true,
       data: figure
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
