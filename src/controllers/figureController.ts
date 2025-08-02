@@ -185,7 +185,7 @@ export const createFigure = async (req: Request, res: Response) => {
       manufacturer: finalData.manufacturer,
       name: finalData.name,
       scale: finalData.scale,
-      mfcLink || '',
+      mfcLink: mfcLink || '', //allow empty string
       location: finalData.location,
       boxNumber: finalData.boxNumber,
       imageUrl: finalData.imageUrl,
