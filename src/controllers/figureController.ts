@@ -4,6 +4,87 @@ import mongoose from 'mongoose';
 import axios from 'axios';
 import cheerio from 'cheerio';
 
+interface MFCScrapedData {
+  imageUrl?: string;
+  manufacturer?: string;
+  name?: string;
+  scale?: string;
+}
+
+// Enhanced MFC scraping function
+const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
+  try {
+    const response = await axios.get(mfcLink, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    const $ = cheerio.load(response.data);
+    const scrapedData: MFCScrapedData = {};
+    
+    // Scrape image URL from main item-picture
+    const imageElement = $('.item-picture .main img').first();
+    if (imageElement.length) {
+      scrapedData.imageUrl = imageElement.attr('src');
+    }
+    
+    // Scrape manufacturer from span with switch attribute
+    const manufacturerSpan = $('span[switch]').first();
+    if (manufacturerSpan.length) {
+      scrapedData.manufacturer = manufacturerSpan.text().trim();
+    }
+    
+    // Scrape name - look for span with Japanese characters (second span with switch)
+    const nameSpan = $('span[switch]').eq(1);
+    if (nameSpan.length) {
+      scrapedData.name = nameSpan.text().trim();
+    }
+    
+    // Scrape scale from item-scale class
+    const scaleElement = $('.item-scale a[title="Scale"]');
+    if (scaleElement.length) {
+      // Get text content and remove <small> tags
+      let scaleText = scaleElement.text().trim();
+      scrapedData.scale = scaleText;
+    }
+    
+    console.log('MFC Scraping results:', scrapedData);
+    return scrapedData;
+    
+  } catch (error) {
+    console.error(`Error scraping MFC data: ${error.message}`);
+    return {};
+  }
+};
+
+// New endpoint for frontend to call when MFC link changes
+export const scrapeMFCData = async (req: Request, res: Response) => {
+  try {
+    const { mfcLink } = req.body;
+    
+    if (!mfcLink) {
+      return res.status(400).json({
+        success: false,
+        message: 'MFC link is required'
+      });
+    }
+    
+    const scrapedData = await scrapeDataFromMFC(mfcLink);
+    
+    res.status(200).json({
+      success: true,
+      data: scrapedData
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
+
 // Get all figures for the logged-in user with pagination
 export const getFigures = async (req: Request, res: Response) => {
   try {
@@ -65,41 +146,49 @@ export const getFigureById = async (req: Request, res: Response) => {
   }
 };
 
-// Extract image from MyFigureCollection URL
-const extractImageFromMFC = async (mfcLink: string): Promise<string | null> => {
-  try {
-    const response = await axios.get(mfcLink);
-    const $ = cheerio.load(response.data);
-    
-    // This is a basic scraper - the actual selector may need adjustment
-    const imageUrl = $('.headline + .container .item-picture img').attr('src');
-    return imageUrl || null;
-  } catch (error: any) {
-    console.error(`Error extracting image from MFC: ${error.message}`);
-    return null;
-  }
-};
-
-// Create a new figure
+// Updated createFigure with enhanced scraping
 export const createFigure = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
     const { manufacturer, name, scale, mfcLink, location, boxNumber, imageUrl } = req.body;
     
-    // Handle the image - either use the provided URL or try to extract from MFC
-    let finalImageUrl = imageUrl;
-    if (!finalImageUrl && mfcLink) {
-      finalImageUrl = await extractImageFromMFC(mfcLink);
-    }
-    
-    const figure = await Figure.create({
+    // Start with provided data
+    let finalData = {
       manufacturer,
       name,
       scale,
-      mfcLink,
-      location,
-      boxNumber,
-      imageUrl: finalImageUrl,
+      imageUrl,
+      location: location || '', // Allow empty strings
+      boxNumber: boxNumber || '' // Allow empty strings
+    };
+    
+    // If MFC link is provided, scrape missing data
+    if (mfcLink && mfcLink.trim()) {
+      const scrapedData = await scrapeDataFromMFC(mfcLink);
+      
+      // Only use scraped data if the field is empty
+      if (!finalData.imageUrl && scrapedData.imageUrl) {
+        finalData.imageUrl = scrapedData.imageUrl;
+      }
+      if (!finalData.manufacturer && scrapedData.manufacturer) {
+        finalData.manufacturer = scrapedData.manufacturer;
+      }
+      if (!finalData.name && scrapedData.name) {
+        finalData.name = scrapedData.name;
+      }
+      if (!finalData.scale && scrapedData.scale) {
+        finalData.scale = scrapedData.scale;
+      }
+    }
+    
+    const figure = await Figure.create({
+      manufacturer: finalData.manufacturer,
+      name: finalData.name,
+      scale: finalData.scale,
+      mfcLink || '',
+      location: finalData.location,
+      boxNumber: finalData.boxNumber,
+      imageUrl: finalData.imageUrl,
       userId
     });
     
@@ -107,7 +196,7 @@ export const createFigure = async (req: Request, res: Response) => {
       success: true,
       data: figure
     });
-  } catch (error: any) {
+  } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Server Error',
@@ -135,25 +224,48 @@ export const updateFigure = async (req: Request, res: Response) => {
       });
     }
     
-    // Handle the image - only try to extract if mfcLink changed and no imageUrl provided
-    let finalImageUrl = imageUrl;
-    if (!finalImageUrl && mfcLink && mfcLink !== figure.mfcLink) {
-      finalImageUrl = await extractImageFromMFC(mfcLink);
-    } else if (!finalImageUrl && !imageUrl) {
-      finalImageUrl = figure.imageUrl; // Keep existing image
+    let finalData = {
+      manufacturer,
+      name,
+      scale,
+      imageUrl,
+      location: location || '',
+      boxNumber: boxNumber || ''
+    };
+
+    // Only scrape if MFC link is provided, not empty, and different from existing
+    if (mfcLink && mfcLink.trim() && mfcLink.trim() !== figure.mfcLink) {
+      const scrapedData = await scrapeDataFromMFC(mfcLink.trim());
+
+      // Only use scraped data if the field is empty
+      if (!finalData.imageUrl && scrapedData.imageUrl) {
+        finalData.imageUrl = scrapedData.imageUrl;
+      }
+      if (!finalData.manufacturer && scrapedData.manufacturer) {
+        finalData.manufacturer = scrapedData.manufacturer;
+      }
+      if (!finalData.name && scrapedData.name) {
+        finalData.name = scrapedData.name;
+      }
+      if (!finalData.scale && scrapedData.scale) {
+        finalData.scale = scrapedData.scale;
+      }
+    } else if (!imageUrl && !mfcLink) {
+      // Keep existing image if no new image URL and no MFC link
+      finalData.imageUrl = figure.imageUrl;
     }
     
     // Update figure
     figure = await Figure.findByIdAndUpdate(
       req.params.id,
       {
-        manufacturer,
-        name,
-        scale,
-        mfcLink,
-        location,
-        boxNumber,
-        imageUrl: finalImageUrl
+	manufacturer: finalData.manufacturer,
+        name: finalData.name,
+        scale: finalData.scale,
+        mfcLink: mfcLink || '', // Allow empty string
+        location: finalData.location,
+        boxNumber: finalData.boxNumber,
+        imageUrl: finalData.imageUrl
       },
       { new: true }
     );

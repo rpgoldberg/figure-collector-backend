@@ -1,5 +1,6 @@
 import express from 'express';
 import { 
+  scrapeMFCData,
   getFigures, 
   getFigureById, 
   createFigure, 
@@ -23,6 +24,8 @@ router.route('/')
 router.get('/search', searchFigures);
 router.get('/filter', filterFigures);
 router.get('/stats', getFigureStats);
+
+router.post('/scrape-mfc', scrapeMFCData);
 
 router.route('/:id')
   .get(getFigureById)
