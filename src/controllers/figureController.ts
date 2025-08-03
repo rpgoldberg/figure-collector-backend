@@ -3,7 +3,6 @@ import Figure, { IFigure } from '../models/Figure';
 import mongoose from 'mongoose';
 import axios from 'axios';
 import cheerio from 'cheerio';
-import puppeteer from 'puppeteer';
 
 interface MFCScrapedData {
   imageUrl?: string;
@@ -12,110 +11,7 @@ interface MFCScrapedData {
   scale?: string;
 }
 
-// Puppeteer-based MFC scraping function
-const scrapeDataFromMFCWithPuppeteer = async (mfcLink: string): Promise<MFCScrapedData> => {
-  console.log(`[MFC PUPPETEER] Starting scrape for URL: ${mfcLink}`);
-  
-  let browser;
-  try {
-    console.log('[MFC PUPPETEER] Launching browser...');
-    browser = await puppeteer.launch({
-      headless: "new",
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu',
-        '--disable-web-security',
-        '--disable-extensions',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection',
-        '--memory-pressure-off',
-        '--max_old_space_size=4096'
-      ],
-      timeout: 30000
-    });
-
-    console.log('[MFC PUPPETEER] Browser launched successfully');
-    const page = await browser.newPage();
-    console.log('[MFC PUPPETEER] New page created');
-    
-    // Set a realistic viewport and user agent
-    await page.setViewport({ width: 1280, height: 720 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36');
-    console.log('[MFC PUPPETEER] Page configured');
-    
-    console.log('[MFC PUPPETEER] Navigating to page...');
-    
-    try {
-      // Navigate with longer timeout and wait for network to be idle
-      await page.goto(mfcLink, { 
-        waitUntil: 'domcontentloaded', // Changed from networkidle2 to be more reliable
-        timeout: 30000 
-      });
-      console.log('[MFC PUPPETEER] Page navigation completed');
-      
-      // Wait a bit for any dynamic content to load
-      await page.waitForTimeout(3000);
-      console.log('[MFC PUPPETEER] Wait period completed, extracting data...');
-    } catch (navError: any) {
-      console.error('[MFC PUPPETEER] Navigation error:', navError.message);
-      throw navError;
-    }
-    
-    // Extract data using page.evaluate
-    const scrapedData = await page.evaluate(() => {
-      const data: any = {};
-      
-      // Try to find image
-      const imageElement = document.querySelector('.item-picture .main img');
-      if (imageElement) {
-        data.imageUrl = imageElement.getAttribute('src');
-      }
-      
-      // Try to find manufacturer
-      const manufacturerSpan = document.querySelector('span[switch]');
-      if (manufacturerSpan) {
-        data.manufacturer = manufacturerSpan.textContent?.trim();
-      }
-      
-      // Try to find name (second span with switch)
-      const nameSpans = document.querySelectorAll('span[switch]');
-      if (nameSpans.length > 1) {
-        data.name = nameSpans[1].textContent?.trim();
-      }
-      
-      // Try to find scale
-      const scaleElement = document.querySelector('.item-scale a[title="Scale"]');
-      if (scaleElement) {
-        data.scale = scaleElement.textContent?.trim();
-      }
-      
-      return data;
-    });
-    
-    console.log('[MFC PUPPETEER] Extraction completed:', scrapedData);
-    return scrapedData;
-    
-  } catch (error: any) {
-    console.error(`[MFC PUPPETEER] Error: ${error.message}`);
-    return {};
-  } finally {
-    if (browser) {
-      await browser.close();
-      console.log('[MFC PUPPETEER] Browser closed');
-    }
-  }
-};
-
-// Fallback axios-based MFC scraping function
+// Axios-based MFC scraping function
 const scrapeDataFromMFCWithAxios = async (mfcLink: string): Promise<MFCScrapedData> => {
   console.log(`[MFC SCRAPER] Starting scrape for URL: ${mfcLink}`);
   
@@ -234,51 +130,55 @@ const scrapeDataFromMFCWithAxios = async (mfcLink: string): Promise<MFCScrapedDa
   }
 };
 
-// Main scraping function that tries multiple approaches
+// Call dedicated scraper service
 const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
-  console.log(`[MFC MAIN] Starting scrape process for: ${mfcLink}`);
+  console.log(`[MFC MAIN] Starting scrape via scraper service for: ${mfcLink}`);
   
-  // Skip Puppeteer for now due to container issues - go straight to axios
-  // TODO: Consider using a proxy service like ScrapingBee or Bright Data for production
+  const scraperServiceUrl = process.env.SCRAPER_SERVICE_URL || 'http://figure-scraper:3000';
   
-  // Try axios first (simpler, faster)
   try {
-    console.log('[MFC MAIN] Attempting axios scraping...');
-    const axiosResult = await scrapeDataFromMFCWithAxios(mfcLink);
+    console.log(`[MFC MAIN] Calling scraper service at: ${scraperServiceUrl}`);
     
-    if (axiosResult.imageUrl || axiosResult.manufacturer || axiosResult.name) {
-      console.log('[MFC MAIN] Axios scraping successful');
-      return axiosResult;
-    }
-  } catch (error: any) {
-    console.error('[MFC MAIN] Axios failed:', error.message);
-  }
-  
-  // If axios fails, try Puppeteer as last resort
-  try {
-    console.log('[MFC MAIN] Attempting Puppeteer as fallback...');
-    const puppeteerResult = await scrapeDataFromMFCWithPuppeteer(mfcLink);
+    const response = await axios.post(`${scraperServiceUrl}/api/scrape/mfc`, {
+      url: mfcLink
+    }, {
+      timeout: 45000, // 45 second timeout for browser automation
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
     
-    // Check if we got meaningful data
-    if (puppeteerResult.imageUrl || puppeteerResult.manufacturer || puppeteerResult.name) {
-      console.log('[MFC MAIN] Puppeteer fallback successful');
-      return puppeteerResult;
+    if (response.data && response.data.success && response.data.data) {
+      console.log('[MFC MAIN] Scraper service successful:', response.data.data);
+      return response.data.data;
     } else {
-      console.log('[MFC MAIN] Puppeteer returned empty data');
+      console.log('[MFC MAIN] Scraper service returned no data');
+      return {};
     }
+    
   } catch (error: any) {
-    console.error('[MFC MAIN] Puppeteer fallback failed:', error.message);
+    console.error('[MFC MAIN] Scraper service failed:', error.message);
+    
+    // If scraper service is down, try local fallback
+    console.log('[MFC MAIN] Falling back to local axios method...');
+    try {
+      const axiosResult = await scrapeDataFromMFCWithAxios(mfcLink);
+      if (axiosResult.imageUrl || axiosResult.manufacturer || axiosResult.name) {
+        console.log('[MFC MAIN] Local fallback successful');
+        return axiosResult;
+      }
+    } catch (fallbackError: any) {
+      console.error('[MFC MAIN] Local fallback also failed:', fallbackError.message);
+    }
+    
+    // Return manual extraction guidance if all methods fail
+    return {
+      imageUrl: `MANUAL_EXTRACT:${mfcLink}`,
+      manufacturer: '',
+      name: '',
+      scale: ''
+    };
   }
-  
-  console.log('[MFC MAIN] All scraping methods failed - returning manual extraction guidance');
-  
-  // Return a partial result that indicates manual extraction is needed
-  return {
-    imageUrl: `MANUAL_EXTRACT:${mfcLink}`,
-    manufacturer: '',
-    name: '',
-    scale: ''
-  };
 };
 
 // New endpoint for frontend to call when MFC link changes
