@@ -20,7 +20,7 @@ const scrapeDataFromMFCWithPuppeteer = async (mfcLink: string): Promise<MFCScrap
   try {
     console.log('[MFC PUPPETEER] Launching browser...');
     browser = await puppeteer.launch({
-      headless: true,
+      headless: "new",
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox',
@@ -32,28 +32,43 @@ const scrapeDataFromMFCWithPuppeteer = async (mfcLink: string): Promise<MFCScrap
         '--single-process',
         '--disable-gpu',
         '--disable-web-security',
-        '--disable-extensions'
-      ]
+        '--disable-extensions',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--memory-pressure-off',
+        '--max_old_space_size=4096'
+      ],
+      timeout: 30000
     });
 
+    console.log('[MFC PUPPETEER] Browser launched successfully');
     const page = await browser.newPage();
+    console.log('[MFC PUPPETEER] New page created');
     
     // Set a realistic viewport and user agent
     await page.setViewport({ width: 1280, height: 720 });
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36');
+    console.log('[MFC PUPPETEER] Page configured');
     
     console.log('[MFC PUPPETEER] Navigating to page...');
     
-    // Navigate with longer timeout and wait for network to be idle
-    await page.goto(mfcLink, { 
-      waitUntil: 'networkidle2', 
-      timeout: 30000 
-    });
-    
-    console.log('[MFC PUPPETEER] Page loaded, extracting data...');
-    
-    // Wait a bit for any dynamic content to load
-    await page.waitForTimeout(2000);
+    try {
+      // Navigate with longer timeout and wait for network to be idle
+      await page.goto(mfcLink, { 
+        waitUntil: 'domcontentloaded', // Changed from networkidle2 to be more reliable
+        timeout: 30000 
+      });
+      console.log('[MFC PUPPETEER] Page navigation completed');
+      
+      // Wait a bit for any dynamic content to load
+      await page.waitForTimeout(3000);
+      console.log('[MFC PUPPETEER] Wait period completed, extracting data...');
+    } catch (navError: any) {
+      console.error('[MFC PUPPETEER] Navigation error:', navError.message);
+      throw navError;
+    }
     
     // Extract data using page.evaluate
     const scrapedData = await page.evaluate(() => {
