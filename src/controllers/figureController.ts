@@ -13,70 +13,153 @@ interface MFCScrapedData {
 
 // Enhanced MFC scraping function
 const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
+  console.log(`[MFC SCRAPER] Starting scrape for URL: ${mfcLink}`);
+  
   try {
+    console.log('[MFC SCRAPER] Making HTTP request...');
     const response = await axios.get(mfcLink, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+      },
+      timeout: 10000 // 10 second timeout
     });
     
+    console.log(`[MFC SCRAPER] HTTP Response Status: ${response.status}`);
+    console.log(`[MFC SCRAPER] Response Content-Type: ${response.headers['content-type']}`);
+    console.log(`[MFC SCRAPER] Response data length: ${response.data ? response.data.length : 'undefined'}`);
+    
+    if (!response.data) {
+      console.error('[MFC SCRAPER] No response data received');
+      return {};
+    }
+    
+    console.log('[MFC SCRAPER] Loading HTML with cheerio...');
     const $ = cheerio.load(response.data);
     const scrapedData: MFCScrapedData = {};
     
+    console.log(`[MFC SCRAPER] HTML loaded successfully, document length: ${$.html().length}`);
+    
     // Scrape image URL from main item-picture
+    console.log('[MFC SCRAPER] Looking for image element...');
     const imageElement = $('.item-picture .main img').first();
+    console.log(`[MFC SCRAPER] Found ${$('.item-picture').length} .item-picture elements`);
+    console.log(`[MFC SCRAPER] Found ${$('.item-picture .main').length} .item-picture .main elements`);
+    console.log(`[MFC SCRAPER] Found ${imageElement.length} image elements in .item-picture .main`);
     if (imageElement.length) {
       scrapedData.imageUrl = imageElement.attr('src');
+      console.log(`[MFC SCRAPER] Image URL found: ${scrapedData.imageUrl}`);
+    } else {
+      console.log('[MFC SCRAPER] No image element found');
     }
     
     // Scrape manufacturer from span with switch attribute
+    console.log('[MFC SCRAPER] Looking for manufacturer span...');
     const manufacturerSpan = $('span[switch]').first();
+    console.log(`[MFC SCRAPER] Found ${$('span[switch]').length} span[switch] elements`);
     if (manufacturerSpan.length) {
       scrapedData.manufacturer = manufacturerSpan.text().trim();
+      console.log(`[MFC SCRAPER] Manufacturer found: ${scrapedData.manufacturer}`);
+    } else {
+      console.log('[MFC SCRAPER] No manufacturer span found');
     }
     
     // Scrape name - look for span with Japanese characters (second span with switch)
+    console.log('[MFC SCRAPER] Looking for name span...');
     const nameSpan = $('span[switch]').eq(1);
     if (nameSpan.length) {
       scrapedData.name = nameSpan.text().trim();
+      console.log(`[MFC SCRAPER] Name found: ${scrapedData.name}`);
+    } else {
+      console.log('[MFC SCRAPER] No name span found');
     }
     
     // Scrape scale from item-scale class
+    console.log('[MFC SCRAPER] Looking for scale element...');
     const scaleElement = $('.item-scale a[title="Scale"]');
+    console.log(`[MFC SCRAPER] Found ${$('.item-scale').length} .item-scale elements`);
+    console.log(`[MFC SCRAPER] Found ${$('.item-scale a').length} .item-scale a elements`);
+    console.log(`[MFC SCRAPER] Found ${scaleElement.length} .item-scale a[title="Scale"] elements`);
     if (scaleElement.length) {
-      // Get text content and remove <small> tags
       let scaleText = scaleElement.text().trim();
       scrapedData.scale = scaleText;
+      console.log(`[MFC SCRAPER] Scale found: ${scrapedData.scale}`);
+    } else {
+      console.log('[MFC SCRAPER] No scale element found');
     }
     
-    console.log('MFC Scraping results:', scrapedData);
+    console.log('[MFC SCRAPER] Final scraping results:', scrapedData);
     return scrapedData;
     
   } catch (error: any) {
-    console.error(`Error scraping MFC data: ${error.message}`);
+    console.error(`[MFC SCRAPER] Error scraping MFC data: ${error.message}`);
+    console.error(`[MFC SCRAPER] Error details:`, {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      headers: error.response?.headers
+    });
+    
+    if (error.response) {
+      console.error(`[MFC SCRAPER] Error response data (first 500 chars):`, 
+        error.response.data ? error.response.data.toString().substring(0, 500) : 'No response data');
+    }
+    
     return {};
   }
 };
 
 // New endpoint for frontend to call when MFC link changes
 export const scrapeMFCData = async (req: Request, res: Response) => {
+  console.log('[MFC ENDPOINT] Received scrape request');
+  console.log('[MFC ENDPOINT] Request body:', req.body);
+  console.log('[MFC ENDPOINT] Request headers:', req.headers);
+  
   try {
     const { mfcLink } = req.body;
     
     if (!mfcLink) {
+      console.log('[MFC ENDPOINT] No MFC link provided in request');
       return res.status(400).json({
         success: false,
         message: 'MFC link is required'
       });
     }
     
+    console.log(`[MFC ENDPOINT] Processing MFC link: ${mfcLink}`);
+    
+    // Validate URL format
+    try {
+      new URL(mfcLink);
+      console.log('[MFC ENDPOINT] URL format validation passed');
+    } catch (urlError) {
+      console.log('[MFC ENDPOINT] Invalid URL format:', urlError);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid URL format'
+      });
+    }
+    
+    // Check if it's an MFC URL
+    if (!mfcLink.includes('myfigurecollection.net')) {
+      console.log('[MFC ENDPOINT] URL is not from myfigurecollection.net');
+      return res.status(400).json({
+        success: false,
+        message: 'URL must be from myfigurecollection.net'
+      });
+    }
+    
+    console.log('[MFC ENDPOINT] Starting scraping process...');
     const scrapedData = await scrapeDataFromMFC(mfcLink);
+    console.log('[MFC ENDPOINT] Scraping completed, data:', scrapedData);
     
     res.status(200).json({
       success: true,
       data: scrapedData
     });
   } catch (error: any) {
+    console.error('[MFC ENDPOINT] Error in scrapeMFCData:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error',
