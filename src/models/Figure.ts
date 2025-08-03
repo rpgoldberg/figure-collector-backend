@@ -18,7 +18,7 @@ const FigureSchema = new Schema<IFigure>(
     manufacturer: { type: String, required: true, index: true },
     name: { type: String, required: true, index: true },
     scale: { type: String, required: false },
-    mfcLink: { type: String, required: true },
+    mfcLink: { type: String, required: false },
     location: { type: String, required: false },
     boxNumber: { type: String, required: false },
     imageUrl: { type: String },

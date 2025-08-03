@@ -4,6 +4,241 @@ import mongoose from 'mongoose';
 import axios from 'axios';
 import cheerio from 'cheerio';
 
+interface MFCScrapedData {
+  imageUrl?: string;
+  manufacturer?: string;
+  name?: string;
+  scale?: string;
+}
+
+// Axios-based MFC scraping function
+const scrapeDataFromMFCWithAxios = async (mfcLink: string): Promise<MFCScrapedData> => {
+  console.log(`[MFC SCRAPER] Starting scrape for URL: ${mfcLink}`);
+  
+  try {
+    console.log('[MFC SCRAPER] Making HTTP request...');
+    const response = await axios.get(mfcLink, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0'
+      },
+      timeout: 15000, // 15 second timeout
+      maxRedirects: 5,
+      validateStatus: (status) => status < 500 // Accept redirects and client errors
+    });
+    
+    console.log(`[MFC SCRAPER] HTTP Response Status: ${response.status}`);
+    console.log(`[MFC SCRAPER] Response Content-Type: ${response.headers['content-type']}`);
+    console.log(`[MFC SCRAPER] Response data length: ${response.data ? response.data.length : 'undefined'}`);
+    
+    if (!response.data) {
+      console.error('[MFC SCRAPER] No response data received');
+      return {};
+    }
+    
+    // Check if we got a Cloudflare challenge page
+    if (response.data.includes('Just a moment...') || response.data.includes('cf-challenge') || response.status === 403) {
+      console.error('[MFC SCRAPER] Detected Cloudflare challenge or 403 - scraping blocked');
+      console.log('[MFC SCRAPER] Response contains Cloudflare protection. This may require manual extraction.');
+      return {};
+    }
+    
+    console.log('[MFC SCRAPER] Loading HTML with cheerio...');
+    const $ = cheerio.load(response.data);
+    const scrapedData: MFCScrapedData = {};
+    
+    console.log(`[MFC SCRAPER] HTML loaded successfully, document length: ${$.html().length}`);
+    
+    // Scrape image URL from main item-picture
+    console.log('[MFC SCRAPER] Looking for image element...');
+    const imageElement = $('.item-picture .main img').first();
+    console.log(`[MFC SCRAPER] Found ${$('.item-picture').length} .item-picture elements`);
+    console.log(`[MFC SCRAPER] Found ${$('.item-picture .main').length} .item-picture .main elements`);
+    console.log(`[MFC SCRAPER] Found ${imageElement.length} image elements in .item-picture .main`);
+    if (imageElement.length) {
+      scrapedData.imageUrl = imageElement.attr('src');
+      console.log(`[MFC SCRAPER] Image URL found: ${scrapedData.imageUrl}`);
+    } else {
+      console.log('[MFC SCRAPER] No image element found');
+    }
+    
+    // Scrape manufacturer from span with switch attribute
+    console.log('[MFC SCRAPER] Looking for manufacturer span...');
+    const manufacturerSpan = $('span[switch]').first();
+    console.log(`[MFC SCRAPER] Found ${$('span[switch]').length} span[switch] elements`);
+    if (manufacturerSpan.length) {
+      scrapedData.manufacturer = manufacturerSpan.text().trim();
+      console.log(`[MFC SCRAPER] Manufacturer found: ${scrapedData.manufacturer}`);
+    } else {
+      console.log('[MFC SCRAPER] No manufacturer span found');
+    }
+    
+    // Scrape name - look for span with Japanese characters (second span with switch)
+    console.log('[MFC SCRAPER] Looking for name span...');
+    const nameSpan = $('span[switch]').eq(1);
+    if (nameSpan.length) {
+      scrapedData.name = nameSpan.text().trim();
+      console.log(`[MFC SCRAPER] Name found: ${scrapedData.name}`);
+    } else {
+      console.log('[MFC SCRAPER] No name span found');
+    }
+    
+    // Scrape scale from item-scale class
+    console.log('[MFC SCRAPER] Looking for scale element...');
+    const scaleElement = $('.item-scale a[title="Scale"]');
+    console.log(`[MFC SCRAPER] Found ${$('.item-scale').length} .item-scale elements`);
+    console.log(`[MFC SCRAPER] Found ${$('.item-scale a').length} .item-scale a elements`);
+    console.log(`[MFC SCRAPER] Found ${scaleElement.length} .item-scale a[title="Scale"] elements`);
+    if (scaleElement.length) {
+      let scaleText = scaleElement.text().trim();
+      scrapedData.scale = scaleText;
+      console.log(`[MFC SCRAPER] Scale found: ${scrapedData.scale}`);
+    } else {
+      console.log('[MFC SCRAPER] No scale element found');
+    }
+    
+    console.log('[MFC SCRAPER] Final scraping results:', scrapedData);
+    return scrapedData;
+    
+  } catch (error: any) {
+    console.error(`[MFC SCRAPER] Error scraping MFC data: ${error.message}`);
+    console.error(`[MFC SCRAPER] Error details:`, {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      headers: error.response?.headers
+    });
+    
+    if (error.response) {
+      console.error(`[MFC SCRAPER] Error response data (first 500 chars):`, 
+        error.response.data ? error.response.data.toString().substring(0, 500) : 'No response data');
+    }
+    
+    return {};
+  }
+};
+
+// Call dedicated scraper service
+const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
+  console.log(`[MFC MAIN] Starting scrape via scraper service for: ${mfcLink}`);
+  
+  const scraperServiceUrl = process.env.SCRAPER_SERVICE_URL || 'http://page-scraper-dev:3000';
+  
+  try {
+    console.log(`[MFC MAIN] Calling scraper service at: ${scraperServiceUrl}`);
+    
+    const response = await axios.post(`${scraperServiceUrl}/scrape/mfc`, {
+      url: mfcLink
+    }, {
+      timeout: 45000, // 45 second timeout for browser automation
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.data && response.data.success && response.data.data) {
+      console.log('[MFC MAIN] Scraper service successful:', response.data.data);
+      return response.data.data;
+    } else {
+      console.log('[MFC MAIN] Scraper service returned no data');
+      return {};
+    }
+    
+  } catch (error: any) {
+    console.error('[MFC MAIN] Scraper service failed:', error.message);
+    
+    // If scraper service is down, try local fallback
+    console.log('[MFC MAIN] Falling back to local axios method...');
+    try {
+      const axiosResult = await scrapeDataFromMFCWithAxios(mfcLink);
+      if (axiosResult.imageUrl || axiosResult.manufacturer || axiosResult.name) {
+        console.log('[MFC MAIN] Local fallback successful');
+        return axiosResult;
+      }
+    } catch (fallbackError: any) {
+      console.error('[MFC MAIN] Local fallback also failed:', fallbackError.message);
+    }
+    
+    // Return manual extraction guidance if all methods fail
+    return {
+      imageUrl: `MANUAL_EXTRACT:${mfcLink}`,
+      manufacturer: '',
+      name: '',
+      scale: ''
+    };
+  }
+};
+
+// New endpoint for frontend to call when MFC link changes
+export const scrapeMFCData = async (req: Request, res: Response) => {
+  console.log('[MFC ENDPOINT] Received scrape request');
+  console.log('[MFC ENDPOINT] Request body:', req.body);
+  console.log('[MFC ENDPOINT] Request headers:', req.headers);
+  
+  try {
+    const { mfcLink } = req.body;
+    
+    if (!mfcLink) {
+      console.log('[MFC ENDPOINT] No MFC link provided in request');
+      return res.status(400).json({
+        success: false,
+        message: 'MFC link is required'
+      });
+    }
+    
+    console.log(`[MFC ENDPOINT] Processing MFC link: ${mfcLink}`);
+    
+    // Validate URL format
+    try {
+      new URL(mfcLink);
+      console.log('[MFC ENDPOINT] URL format validation passed');
+    } catch (urlError) {
+      console.log('[MFC ENDPOINT] Invalid URL format:', urlError);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid URL format'
+      });
+    }
+    
+    // Check if it's an MFC URL
+    if (!mfcLink.includes('myfigurecollection.net')) {
+      console.log('[MFC ENDPOINT] URL is not from myfigurecollection.net');
+      return res.status(400).json({
+        success: false,
+        message: 'URL must be from myfigurecollection.net'
+      });
+    }
+    
+    console.log('[MFC ENDPOINT] Starting scraping process...');
+    const scrapedData = await scrapeDataFromMFC(mfcLink);
+    console.log('[MFC ENDPOINT] Scraping completed, data:', scrapedData);
+    
+    res.status(200).json({
+      success: true,
+      data: scrapedData
+    });
+  } catch (error: any) {
+    console.error('[MFC ENDPOINT] Error in scrapeMFCData:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
+
 // Get all figures for the logged-in user with pagination
 export const getFigures = async (req: Request, res: Response) => {
   try {
@@ -65,41 +300,49 @@ export const getFigureById = async (req: Request, res: Response) => {
   }
 };
 
-// Extract image from MyFigureCollection URL
-const extractImageFromMFC = async (mfcLink: string): Promise<string | null> => {
-  try {
-    const response = await axios.get(mfcLink);
-    const $ = cheerio.load(response.data);
-    
-    // This is a basic scraper - the actual selector may need adjustment
-    const imageUrl = $('.headline + .container .item-picture img').attr('src');
-    return imageUrl || null;
-  } catch (error: any) {
-    console.error(`Error extracting image from MFC: ${error.message}`);
-    return null;
-  }
-};
-
-// Create a new figure
+// Updated createFigure with enhanced scraping
 export const createFigure = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
     const { manufacturer, name, scale, mfcLink, location, boxNumber, imageUrl } = req.body;
     
-    // Handle the image - either use the provided URL or try to extract from MFC
-    let finalImageUrl = imageUrl;
-    if (!finalImageUrl && mfcLink) {
-      finalImageUrl = await extractImageFromMFC(mfcLink);
-    }
-    
-    const figure = await Figure.create({
+    // Start with provided data
+    let finalData = {
       manufacturer,
       name,
       scale,
-      mfcLink,
-      location,
-      boxNumber,
-      imageUrl: finalImageUrl,
+      imageUrl,
+      location: location || '', // Allow empty strings
+      boxNumber: boxNumber || '' // Allow empty strings
+    };
+    
+    // If MFC link is provided, scrape missing data
+    if (mfcLink && mfcLink.trim()) {
+      const scrapedData = await scrapeDataFromMFC(mfcLink);
+      
+      // Only use scraped data if the field is empty
+      if (!finalData.imageUrl && scrapedData.imageUrl) {
+        finalData.imageUrl = scrapedData.imageUrl;
+      }
+      if (!finalData.manufacturer && scrapedData.manufacturer) {
+        finalData.manufacturer = scrapedData.manufacturer;
+      }
+      if (!finalData.name && scrapedData.name) {
+        finalData.name = scrapedData.name;
+      }
+      if (!finalData.scale && scrapedData.scale) {
+        finalData.scale = scrapedData.scale;
+      }
+    }
+    
+    const figure = await Figure.create({
+      manufacturer: finalData.manufacturer,
+      name: finalData.name,
+      scale: finalData.scale,
+      mfcLink: mfcLink || '', //allow empty string
+      location: finalData.location,
+      boxNumber: finalData.boxNumber,
+      imageUrl: finalData.imageUrl,
       userId
     });
     
@@ -135,25 +378,48 @@ export const updateFigure = async (req: Request, res: Response) => {
       });
     }
     
-    // Handle the image - only try to extract if mfcLink changed and no imageUrl provided
-    let finalImageUrl = imageUrl;
-    if (!finalImageUrl && mfcLink && mfcLink !== figure.mfcLink) {
-      finalImageUrl = await extractImageFromMFC(mfcLink);
-    } else if (!finalImageUrl && !imageUrl) {
-      finalImageUrl = figure.imageUrl; // Keep existing image
+    let finalData = {
+      manufacturer,
+      name,
+      scale,
+      imageUrl,
+      location: location || '',
+      boxNumber: boxNumber || ''
+    };
+
+    // Only scrape if MFC link is provided, not empty, and different from existing
+    if (mfcLink && mfcLink.trim() && mfcLink.trim() !== figure.mfcLink) {
+      const scrapedData = await scrapeDataFromMFC(mfcLink.trim());
+
+      // Only use scraped data if the field is empty
+      if (!finalData.imageUrl && scrapedData.imageUrl) {
+        finalData.imageUrl = scrapedData.imageUrl;
+      }
+      if (!finalData.manufacturer && scrapedData.manufacturer) {
+        finalData.manufacturer = scrapedData.manufacturer;
+      }
+      if (!finalData.name && scrapedData.name) {
+        finalData.name = scrapedData.name;
+      }
+      if (!finalData.scale && scrapedData.scale) {
+        finalData.scale = scrapedData.scale;
+      }
+    } else if (!imageUrl && !mfcLink) {
+      // Keep existing image if no new image URL and no MFC link
+      finalData.imageUrl = figure.imageUrl;
     }
     
     // Update figure
     figure = await Figure.findByIdAndUpdate(
       req.params.id,
       {
-        manufacturer,
-        name,
-        scale,
-        mfcLink,
-        location,
-        boxNumber,
-        imageUrl: finalImageUrl
+	manufacturer: finalData.manufacturer,
+        name: finalData.name,
+        scale: finalData.scale,
+        mfcLink: mfcLink || '', // Allow empty string
+        location: finalData.location,
+        boxNumber: finalData.boxNumber,
+        imageUrl: finalData.imageUrl
       },
       { new: true }
     );

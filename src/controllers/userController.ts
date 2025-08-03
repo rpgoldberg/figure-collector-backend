@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 // Generate JWT Token
 const generateToken = (id: string) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', {
-    expiresIn: '30d'
+    expiresIn: '60m' // 60 minutes instead of 30 days
   });
 };
 

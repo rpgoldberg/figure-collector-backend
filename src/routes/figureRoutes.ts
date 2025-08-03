@@ -1,5 +1,6 @@
 import express from 'express';
 import { 
+  scrapeMFCData,
   getFigures, 
   getFigureById, 
   createFigure, 
@@ -12,6 +13,9 @@ import {
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
+
+// Public routes (no authentication required)
+router.post('/scrape-mfc', scrapeMFCData);
 
 // Protected routes
 router.use(protect);
