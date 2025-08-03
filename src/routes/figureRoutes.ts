@@ -14,6 +14,9 @@ import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
+// Public routes (no authentication required)
+router.post('/scrape-mfc', scrapeMFCData);
+
 // Protected routes
 router.use(protect);
 
@@ -24,8 +27,6 @@ router.route('/')
 router.get('/search', searchFigures);
 router.get('/filter', filterFigures);
 router.get('/stats', getFigureStats);
-
-router.post('/scrape-mfc', scrapeMFCData);
 
 router.route('/:id')
   .get(getFigureById)
