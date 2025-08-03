@@ -238,37 +238,47 @@ const scrapeDataFromMFCWithAxios = async (mfcLink: string): Promise<MFCScrapedDa
 const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
   console.log(`[MFC MAIN] Starting scrape process for: ${mfcLink}`);
   
-  // First try Puppeteer (best for Cloudflare)
+  // Skip Puppeteer for now due to container issues - go straight to axios
+  // TODO: Consider using a proxy service like ScrapingBee or Bright Data for production
+  
+  // Try axios first (simpler, faster)
   try {
-    console.log('[MFC MAIN] Attempting Puppeteer scraping...');
+    console.log('[MFC MAIN] Attempting axios scraping...');
+    const axiosResult = await scrapeDataFromMFCWithAxios(mfcLink);
+    
+    if (axiosResult.imageUrl || axiosResult.manufacturer || axiosResult.name) {
+      console.log('[MFC MAIN] Axios scraping successful');
+      return axiosResult;
+    }
+  } catch (error: any) {
+    console.error('[MFC MAIN] Axios failed:', error.message);
+  }
+  
+  // If axios fails, try Puppeteer as last resort
+  try {
+    console.log('[MFC MAIN] Attempting Puppeteer as fallback...');
     const puppeteerResult = await scrapeDataFromMFCWithPuppeteer(mfcLink);
     
     // Check if we got meaningful data
     if (puppeteerResult.imageUrl || puppeteerResult.manufacturer || puppeteerResult.name) {
-      console.log('[MFC MAIN] Puppeteer scraping successful');
+      console.log('[MFC MAIN] Puppeteer fallback successful');
       return puppeteerResult;
     } else {
-      console.log('[MFC MAIN] Puppeteer returned empty data, trying fallback...');
+      console.log('[MFC MAIN] Puppeteer returned empty data');
     }
   } catch (error: any) {
-    console.error('[MFC MAIN] Puppeteer failed:', error.message);
+    console.error('[MFC MAIN] Puppeteer fallback failed:', error.message);
   }
   
-  // Fallback to axios (might work if Cloudflare isn't active)
-  try {
-    console.log('[MFC MAIN] Attempting axios fallback...');
-    const axiosResult = await scrapeDataFromMFCWithAxios(mfcLink);
-    
-    if (axiosResult.imageUrl || axiosResult.manufacturer || axiosResult.name) {
-      console.log('[MFC MAIN] Axios fallback successful');
-      return axiosResult;
-    }
-  } catch (error: any) {
-    console.error('[MFC MAIN] Axios fallback failed:', error.message);
-  }
+  console.log('[MFC MAIN] All scraping methods failed - returning manual extraction guidance');
   
-  console.log('[MFC MAIN] All scraping methods failed');
-  return {};
+  // Return a partial result that indicates manual extraction is needed
+  return {
+    imageUrl: `MANUAL_EXTRACT:${mfcLink}`,
+    manufacturer: '',
+    name: '',
+    scale: ''
+  };
 };
 
 // New endpoint for frontend to call when MFC link changes
