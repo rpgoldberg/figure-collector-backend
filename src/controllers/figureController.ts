@@ -19,9 +19,22 @@ const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
     console.log('[MFC SCRAPER] Making HTTP request...');
     const response = await axios.get(mfcLink, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0'
       },
-      timeout: 10000 // 10 second timeout
+      timeout: 15000, // 15 second timeout
+      maxRedirects: 5,
+      validateStatus: (status) => status < 500 // Accept redirects and client errors
     });
     
     console.log(`[MFC SCRAPER] HTTP Response Status: ${response.status}`);
@@ -30,6 +43,13 @@ const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
     
     if (!response.data) {
       console.error('[MFC SCRAPER] No response data received');
+      return {};
+    }
+    
+    // Check if we got a Cloudflare challenge page
+    if (response.data.includes('Just a moment...') || response.data.includes('cf-challenge') || response.status === 403) {
+      console.error('[MFC SCRAPER] Detected Cloudflare challenge or 403 - scraping blocked');
+      console.log('[MFC SCRAPER] Response contains Cloudflare protection. This may require manual extraction.');
       return {};
     }
     
