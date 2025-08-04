@@ -134,12 +134,12 @@ const scrapeDataFromMFCWithAxios = async (mfcLink: string): Promise<MFCScrapedDa
 const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
   console.log(`[MFC MAIN] Starting scrape via scraper service for: ${mfcLink}`);
   
-  const scraperServiceUrl = process.env.SCRAPER_SERVICE_URL || 'http://figure-scraper:3000';
+  const scraperServiceUrl = process.env.SCRAPER_SERVICE_URL || 'http://page-scraper-dev:3000';
   
   try {
     console.log(`[MFC MAIN] Calling scraper service at: ${scraperServiceUrl}`);
     
-    const response = await axios.post(`${scraperServiceUrl}/api/scrape/mfc`, {
+    const response = await axios.post(`${scraperServiceUrl}/scrape/mfc`, {
       url: mfcLink
     }, {
       timeout: 45000, // 45 second timeout for browser automation
