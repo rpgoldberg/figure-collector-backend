@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import figureRoutes from './routes/figureRoutes';
 import userRoutes from './routes/userRoutes';
 import { connectDB } from './config/db';
+import * as packageJson from '../package.json';
 
 dotenv.config();
 
@@ -32,22 +33,41 @@ app.get('/health', (req, res) => {
 // Version endpoint
 app.get('/version', async (req, res) => {
   try {
-    // TODO: Read version info from version.json (needs to be accessible to backend)
+    // Fetch app info from infra version service
+    let appInfo = {
+      name: "figure-collector-services",
+      version: "unknown",
+      releaseDate: "unknown"
+    };
+    
+    try {
+      const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3020';
+      const appVersionResponse = await fetch(`${versionServiceUrl}/app-version`);
+      
+      if (appVersionResponse.ok) {
+        const appVersionData = await appVersionResponse.json();
+        appInfo = {
+          name: appVersionData.name || "figure-collector-services",
+          version: appVersionData.version || "unknown",
+          releaseDate: appVersionData.releaseDate || "unknown"
+        };
+      }
+    } catch (error) {
+      console.warn('Could not fetch app version from infra service:', error.message);
+    }
+
     const versionInfo: any = {
-      application: {
-        name: "figure-collector-services",
-        version: "unknown",
-        releaseDate: "unknown"
-      },
+      application: appInfo,
       services: {
         backend: {
           name: "figure-collector-backend",
-          version: "unknown",
-          status: "version-unavailable"
+          version: packageJson.version,
+          status: "ok"
         },
         frontend: {
           name: "figure-collector-frontend", 
-          version: "unknown"
+          version: "unknown",
+          status: "not-checked"
         },
         scraper: {
           name: "page-scraper",
@@ -56,6 +76,25 @@ app.get('/version', async (req, res) => {
         }
       }
     };
+
+    // Try to fetch frontend version
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || `http://${process.env.BACKEND_HOST || 'frontend'}:${process.env.FRONTEND_PORT || 3000}`;
+      const frontendResponse = await fetch(`${frontendUrl}/frontend-version`);
+      
+      if (frontendResponse.ok) {
+        const frontendVersion = await frontendResponse.json();
+        versionInfo.services.frontend = {
+          name: "figure-collector-frontend",
+          version: frontendVersion.version || "unknown",
+          status: "ok"
+        };
+      } else {
+        versionInfo.services.frontend.status = "unreachable";
+      }
+    } catch (error) {
+      versionInfo.services.frontend.status = "error";
+    }
 
     // Try to fetch scraper version
     try {
