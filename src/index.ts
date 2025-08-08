@@ -33,7 +33,7 @@ app.get('/health', (req, res) => {
 app.get('/version', async (req, res) => {
   try {
     // TODO: Read version info from version.json (needs to be accessible to backend)
-    const versionInfo = {
+    const versionInfo: any = {
       application: {
         name: "figure-collector-services",
         version: "unknown",
@@ -48,6 +48,11 @@ app.get('/version', async (req, res) => {
         frontend: {
           name: "figure-collector-frontend", 
           version: "unknown"
+        },
+        scraper: {
+          name: "page-scraper",
+          version: "unknown",
+          status: "not-checked"
         }
       }
     };
