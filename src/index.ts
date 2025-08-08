@@ -41,7 +41,7 @@ app.get('/version', async (req, res) => {
     };
     
     try {
-      const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3020';
+      const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
       const appVersionResponse = await fetch(`${versionServiceUrl}/app-version`);
       
       if (appVersionResponse.ok) {
@@ -79,7 +79,7 @@ app.get('/version', async (req, res) => {
 
     // Try to fetch frontend version
     try {
-      const frontendUrl = process.env.FRONTEND_URL || `http://${process.env.BACKEND_HOST || 'frontend'}:${process.env.FRONTEND_PORT || 3000}`;
+      const frontendUrl = process.env.FRONTEND_URL || `http://${process.env.FRONTEND_HOST || 'figure-collector-frontend'}:${process.env.FRONTEND_PORT || 5051}`;
       const frontendResponse = await fetch(`${frontendUrl}/frontend-version`);
       
       if (frontendResponse.ok) {
