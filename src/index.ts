@@ -42,18 +42,24 @@ app.get('/version', async (req, res) => {
     
     try {
       const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
+      console.log(`[VERSION] Attempting to fetch app version from: ${versionServiceUrl}/app-version`);
+      
       const appVersionResponse = await fetch(`${versionServiceUrl}/app-version`);
+      console.log(`[VERSION] Version service response status: ${appVersionResponse.status}`);
       
       if (appVersionResponse.ok) {
         const appVersionData = await appVersionResponse.json();
+        console.log(`[VERSION] Version service data:`, appVersionData);
         appInfo = {
           name: appVersionData.name || "figure-collector-services",
           version: appVersionData.version || "unknown",
           releaseDate: appVersionData.releaseDate || "unknown"
         };
+      } else {
+        console.warn(`[VERSION] Version service returned non-OK status: ${appVersionResponse.status}`);
       }
     } catch (error: any) {
-      console.warn('Could not fetch app version from infra service:', error.message);
+      console.warn(`[VERSION] Could not fetch app version from ${process.env.VERSION_SERVICE_URL || 'http://version-service:3001'}: ${error.message}`);
     }
 
     const versionInfo: any = {
@@ -80,19 +86,25 @@ app.get('/version', async (req, res) => {
     // Try to fetch frontend version
     try {
       const frontendUrl = process.env.FRONTEND_URL || `http://${process.env.FRONTEND_HOST || 'figure-collector-frontend'}:${process.env.FRONTEND_PORT || 5051}`;
+      console.log(`[VERSION] Attempting to fetch frontend version from: ${frontendUrl}/frontend-version`);
+      
       const frontendResponse = await fetch(`${frontendUrl}/frontend-version`);
+      console.log(`[VERSION] Frontend response status: ${frontendResponse.status}`);
       
       if (frontendResponse.ok) {
         const frontendVersion = await frontendResponse.json();
+        console.log(`[VERSION] Frontend data:`, frontendVersion);
         versionInfo.services.frontend = {
           name: "figure-collector-frontend",
           version: frontendVersion.version || "unknown",
           status: "ok"
         };
       } else {
+        console.warn(`[VERSION] Frontend returned non-OK status: ${frontendResponse.status}`);
         versionInfo.services.frontend.status = "unreachable";
       }
     } catch (error: any) {
+      console.warn(`[VERSION] Could not fetch frontend version: ${error.message}`);
       versionInfo.services.frontend.status = "error";
     }
 
