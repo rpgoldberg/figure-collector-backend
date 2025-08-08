@@ -52,7 +52,7 @@ app.get('/version', async (req, res) => {
           releaseDate: appVersionData.releaseDate || "unknown"
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn('Could not fetch app version from infra service:', error.message);
     }
 
@@ -92,7 +92,7 @@ app.get('/version', async (req, res) => {
       } else {
         versionInfo.services.frontend.status = "unreachable";
       }
-    } catch (error) {
+    } catch (error: any) {
       versionInfo.services.frontend.status = "error";
     }
 
@@ -115,7 +115,7 @@ app.get('/version', async (req, res) => {
           status: "unreachable"
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       versionInfo.services.scraper = {
         name: "page-scraper",
         version: "unknown", 
@@ -124,7 +124,7 @@ app.get('/version', async (req, res) => {
     }
 
     res.json(versionInfo);
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch version information' });
   }
 });
