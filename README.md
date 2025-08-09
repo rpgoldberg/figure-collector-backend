@@ -37,7 +37,7 @@ The backend acts as the central orchestrator for version management:
 
 **Business Logic APIs** (accessed via `/api` prefix through nginx)
 - `/figures/*` - Figure management endpoints
-- `/users/*` - User authentication endpoints  
+- `/users/*` - User authentication endpoints
 - `/figures/scrape-mfc` - MFC scraping proxy endpoint
 
 Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't include `/api` in their paths.
