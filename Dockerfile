@@ -11,7 +11,9 @@ COPY . .
 
 RUN npm run build
 
-EXPOSE 5050
+# Port will be set by environment variable
+ENV PORT=5050
+EXPOSE ${PORT}
 
 RUN apk add --no-cache curl
 
