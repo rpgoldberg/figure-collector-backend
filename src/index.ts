@@ -149,7 +149,7 @@ const testConnectivity = async () => {
   try {
     const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
     console.log(`[NETWORK] Testing version service: ${versionServiceUrl}/health`);
-    const versionTest = await fetch(`${versionServiceUrl}/health`, { timeout: 5000 });
+    const versionTest = await fetch(`${versionServiceUrl}/health`);
     console.log(`[NETWORK] Version service status: ${versionTest.status}`);
   } catch (error: any) {
     console.log(`[NETWORK] Version service failed: ${error.message}`);
@@ -159,7 +159,7 @@ const testConnectivity = async () => {
   try {
     const frontendUrl = `http://${process.env.FRONTEND_HOST || 'figure-collector-frontend'}:${process.env.FRONTEND_PORT || 5051}`;
     console.log(`[NETWORK] Testing frontend: ${frontendUrl}/health`);
-    const frontendTest = await fetch(`${frontendUrl}/health`, { timeout: 5000 });
+    const frontendTest = await fetch(`${frontendUrl}/health`);
     console.log(`[NETWORK] Frontend status: ${frontendTest.status}`);
   } catch (error: any) {
     console.log(`[NETWORK] Frontend failed: ${error.message}`);
@@ -169,7 +169,7 @@ const testConnectivity = async () => {
   try {
     const scraperUrl = process.env.SCRAPER_SERVICE_URL || 'http://page-scraper:3000';
     console.log(`[NETWORK] Testing scraper: ${scraperUrl}/health`);
-    const scraperTest = await fetch(`${scraperUrl}/health`, { timeout: 5000 });
+    const scraperTest = await fetch(`${scraperUrl}/health`);
     console.log(`[NETWORK] Scraper status: ${scraperTest.status}`);
   } catch (error: any) {
     console.log(`[NETWORK] Scraper failed: ${error.message}`);
