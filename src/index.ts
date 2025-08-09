@@ -21,6 +21,15 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Connect to MongoDB
 connectDB();
 
+// In-memory storage for service versions (could be moved to database if persistence needed)
+let serviceVersions = {
+  frontend: {
+    name: "figure-collector-frontend",
+    version: "unknown",
+    status: "not-registered"
+  }
+};
+
 // Routes
 app.use('/figures', figureRoutes);
 app.use('/users', userRoutes);
@@ -28,6 +37,32 @@ app.use('/users', userRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+// Frontend service registration endpoint
+app.post('/register-service', (req, res) => {
+  try {
+    const { serviceName, version, name } = req.body;
+    
+    if (!serviceName || !version) {
+      return res.status(400).json({ error: 'serviceName and version are required' });
+    }
+    
+    if (serviceName === 'frontend') {
+      serviceVersions.frontend = {
+        name: name || "figure-collector-frontend",
+        version: version,
+        status: "ok"
+      };
+      console.log(`[REGISTER] Frontend registered: v${version}`);
+      res.json({ success: true, message: 'Service registered successfully' });
+    } else {
+      res.status(400).json({ error: 'Only frontend service registration is currently supported' });
+    }
+  } catch (error: any) {
+    console.error('[REGISTER] Error registering service:', error.message);
+    res.status(500).json({ error: 'Failed to register service' });
+  }
 });
 
 // Version endpoint
@@ -70,11 +105,7 @@ app.get('/version', async (req, res) => {
           version: packageJson.version,
           status: "ok"
         },
-        frontend: {
-          name: "figure-collector-frontend", 
-          version: "unknown",
-          status: "not-checked"
-        },
+        frontend: serviceVersions.frontend,
         scraper: {
           name: "page-scraper",
           version: "unknown",
@@ -82,31 +113,6 @@ app.get('/version', async (req, res) => {
         }
       }
     };
-
-    // Try to fetch frontend version
-    try {
-      const frontendUrl = process.env.FRONTEND_URL || `http://${process.env.FRONTEND_HOST || 'figure-collector-frontend'}:${process.env.FRONTEND_PORT || 5051}`;
-      console.log(`[VERSION] Attempting to fetch frontend version from: ${frontendUrl}/frontend-version`);
-      
-      const frontendResponse = await fetch(`${frontendUrl}/frontend-version`);
-      console.log(`[VERSION] Frontend response status: ${frontendResponse.status}`);
-      
-      if (frontendResponse.ok) {
-        const frontendVersion = await frontendResponse.json();
-        console.log(`[VERSION] Frontend data:`, frontendVersion);
-        versionInfo.services.frontend = {
-          name: "figure-collector-frontend",
-          version: frontendVersion.version || "unknown",
-          status: "ok"
-        };
-      } else {
-        console.warn(`[VERSION] Frontend returned non-OK status: ${frontendResponse.status}`);
-        versionInfo.services.frontend.status = "unreachable";
-      }
-    } catch (error: any) {
-      console.warn(`[VERSION] Could not fetch frontend version: ${error.message}`);
-      versionInfo.services.frontend.status = "error";
-    }
 
     // Try to fetch scraper version
     try {
