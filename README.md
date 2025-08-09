@@ -28,6 +28,20 @@ The backend acts as the central orchestrator for version management:
 - **Version Validation**: Integrates with version-service to validate service version combinations
 - **Unified API**: Provides single `/version` endpoint with all service information and validation status
 
+## API Endpoints
+
+**Infrastructure Endpoints** (accessed directly via nginx proxy)
+- `POST /register-service` - Service registration (used by frontend)
+- `GET /version` - Aggregated version info with validation
+- `GET /health` - Service health check
+
+**Business Logic APIs** (accessed via `/api` prefix through nginx)
+- `/figures/*` - Figure management endpoints
+- `/users/*` - User authentication endpoints  
+- `/figures/scrape-mfc` - MFC scraping proxy endpoint
+
+Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't include `/api` in their paths.
+
 ### Environment Variables
 
 **Required:**
