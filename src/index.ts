@@ -135,6 +135,27 @@ app.get('/version', async (req, res) => {
       };
     }
 
+    // Try to validate version combination
+    try {
+      const backend = versionInfo.services.backend?.version;
+      const frontend = versionInfo.services.frontend?.version; 
+      const scraper = versionInfo.services.scraper?.version;
+      
+      if (backend && frontend && scraper && 
+          backend !== 'unknown' && frontend !== 'unknown' && scraper !== 'unknown') {
+        
+        const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
+        const validationResponse = await fetch(`${versionServiceUrl}/validate-versions?backend=${backend}&frontend=${frontend}&scraper=${scraper}`);
+        
+        if (validationResponse.ok) {
+          const validationData = await validationResponse.json();
+          versionInfo.validation = validationData;
+        }
+      }
+    } catch (error: any) {
+      console.warn('[VERSION] Could not validate version combination:', error.message);
+    }
+
     res.json(versionInfo);
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch version information' });
