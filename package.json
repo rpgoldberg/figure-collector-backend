@@ -1,6 +1,6 @@
 {
   "name": "figure-collector-backend",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Backend API for figure collection management",
   "main": "dist/index.js",
   "scripts": {
