@@ -30,3 +30,6 @@ Thumbs.db
 
 # Serena cache
 .serena/
+
+# Backup files
+*.backup
