@@ -1,9 +1,9 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
-  testMatch: ['<rootDir>/src/__tests__/unit/**/*.test.ts'],
+  roots: ['<rootDir>/tests'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  testMatch: ['<rootDir>/tests/**/*.test.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.test.json',
@@ -11,9 +11,6 @@ module.exports = {
         warnOnly: true
       }
     }],
-  },
-  moduleNameMapper: {
-    '^puppeteer$': '<rootDir>/src/__tests__/__mocks__/puppeteer.ts'
   },
   collectCoverageFrom: [
     'src/**/*.ts',
