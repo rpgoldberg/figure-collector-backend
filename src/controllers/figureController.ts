@@ -485,7 +485,16 @@ export const searchFigures = async (req: Request, res: Response) => {
     }
 
     // Convert userId to ObjectId for the filter
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    let userObjectId: mongoose.Types.ObjectId;
+    try {
+      userObjectId = new mongoose.Types.ObjectId(userId);
+    } catch (error) {
+      console.error('Invalid userId for ObjectId conversion:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user identifier'
+      });
+    }
     
     // MongoDB Atlas Search query
     const searchResults = await Figure.aggregate([
@@ -603,27 +612,38 @@ export const filterFigures = async (req: Request, res: Response) => {
 export const getFigureStats = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
+    let userObjectId: mongoose.Types.ObjectId;
+    
+    try {
+      userObjectId = new mongoose.Types.ObjectId(userId);
+    } catch (error) {
+      console.error('Invalid userId for ObjectId conversion:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user identifier'
+      });
+    }
     
     // Total count
-    const totalCount = await Figure.countDocuments({ userId });
+    const totalCount = await Figure.countDocuments({ userId: userObjectId });
     
     // Count by manufacturer
     const manufacturerStats = await Figure.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      { $match: { userId: userObjectId } },
       { $group: { _id: '$manufacturer', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
     
     // Count by scale
     const scaleStats = await Figure.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      { $match: { userId: userObjectId } },
       { $group: { _id: '$scale', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
     
     // Count by location
     const locationStats = await Figure.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      { $match: { userId: userObjectId } },
       { $group: { _id: '$location', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);

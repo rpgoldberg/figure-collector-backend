@@ -121,12 +121,14 @@ tests/
 
 ### Running Tests
 
+**WSL Setup Required**: Install Node.js via NVM (see [WSL_TEST_FIX_SOLUTION.md](../WSL_TEST_FIX_SOLUTION.md))
+
 ```bash
 # Install dependencies
 npm install
 
-# Run all tests
-npm test
+# Run all tests (memory mode)
+npm run test:memory
 
 # Run with coverage report
 npm run test:coverage

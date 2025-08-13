@@ -17,7 +17,9 @@ describe('Figure Routes Integration', () => {
   let authToken: string;
 
   beforeEach(async () => {
+    const fixedUserId = new mongoose.Types.ObjectId('000000000000000000000123');
     testUser = new User({
+      _id: fixedUserId,
       username: 'figureuser',
       email: 'figure@example.com',
       password: 'password123'
@@ -480,14 +482,15 @@ describe('Figure Routes Integration', () => {
       });
     });
 
-    it('should handle search query (may fail without Atlas Search)', async () => {
+    it('should handle search query with Atlas Search mocking', async () => {
       const response = await request(app)
         .get('/figures/search?query=Miku')
         .set('Authorization', `Bearer ${authToken}`)
-        .expect((res) => {
-          // Expect either 200 (if Atlas Search works) or 500 (if not available)
-          expect([200, 500]).toContain(res.status);
-        });
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].name).toBe('Hatsune Miku');
     });
   });
 

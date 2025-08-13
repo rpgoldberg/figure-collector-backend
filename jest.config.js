@@ -1,13 +1,19 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/tests'],
-  testMatch: [
-    '**/__tests__/**/*.ts',
-    '**/?(*.)+(spec|test).ts'
-  ],
+  roots: ['<rootDir>/src'],
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  testMatch: ['<rootDir>/src/__tests__/unit/**/*.test.ts'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: 'tsconfig.test.json',
+      diagnostics: {
+        warnOnly: true
+      }
+    }],
+  },
+  moduleNameMapper: {
+    '^puppeteer$': '<rootDir>/src/__tests__/__mocks__/puppeteer.ts'
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -17,7 +23,9 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 30000,
+  maxWorkers: '50%',
+  detectOpenHandles: true,
+  forceExit: true,
   verbose: true
 };

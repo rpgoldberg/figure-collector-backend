@@ -72,7 +72,7 @@ describe('FigureController', () => {
 
       const mockFind = {
         sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mkReturnThis(),
+        skip: jest.fn().mockReturnThis(),
         limit: jest.fn().mockResolvedValue([])
       };
 
@@ -451,12 +451,13 @@ describe('FigureController', () => {
     it('should search figures using MongoDB Atlas Search', async () => {
       mockRequest.query = { query: 'Miku' };
 
+      const userId = '000000000000000000000123';
       const mockSearchResults = [
         {
           _id: 'fig1',
           manufacturer: 'GSC',
           name: 'Hatsune Miku',
-          userId: new mongoose.Types.ObjectId('user123')
+          userId: new mongoose.Types.ObjectId(userId)
         }
       ];
 

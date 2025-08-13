@@ -1,22 +1,31 @@
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+
+let mongoServer: MongoMemoryServer;
 
 // Mock environment variables for tests
 process.env.JWT_SECRET = 'test-secret';
 process.env.NODE_ENV = 'test';
-process.env.MONGODB_URI = 'mongodb://localhost:27017/figure-collector-test';
+process.env.MONGODB_URI = process.env.TEST_MONGODB_URI || 'mongodb://localhost:27017/figure-collector-test';
 
 // Setup test database before all tests
 beforeAll(async () => {
-  // Connect to test database
-  const testDbUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/figure-collector-test';
+  // Create MongoDB memory server
+  mongoServer = await MongoMemoryServer.create();
+  const mongoUri = mongoServer.getUri();
   
   if (mongoose.connection.readyState === 0) {
     try {
-      await mongoose.connect(testDbUri);
-      console.log('Connected to test database');
+      await mongoose.connect(mongoUri, {
+        retryWrites: true,
+        socketTimeoutMS: 30000,
+        serverSelectionTimeoutMS: 30000
+      });
+      console.log('Connected to in-memory test database');
     } catch (error) {
-      console.log('MongoDB not available, using mocked tests');
+      console.error('Failed to connect to in-memory database', error);
+      throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 });
@@ -24,7 +33,7 @@ beforeAll(async () => {
 // Clean up after each test
 afterEach(async () => {
   if (mongoose.connection.readyState === 1) {
-    const collections = mongoose.connection.collections;
+    const collections = mongoose.connection.collections as Record<string, mongoose.Collection>;
     
     for (const key in collections) {
       const collection = collections[key];
@@ -37,6 +46,9 @@ afterEach(async () => {
 afterAll(async () => {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.connection.close();
+  }
+  if (mongoServer) {
+    await mongoServer.stop();
   }
 });
 
@@ -59,3 +71,86 @@ export const createTestUser = () => {
     updatedAt: new Date()
   };
 };
+
+// Atlas Search Mock Functions
+export const getTestMode = () => {
+  return process.env.NODE_ENV || 'test';
+};
+
+export const isUsingRealAtlasSearch = () => {
+  return process.env.ATLAS_SEARCH_ENABLED === 'true';
+};
+
+export const mockAtlasSearch = (searchQuery: string, documents: any[], userId: any) => {
+  if (!searchQuery || !documents) {
+    return [];
+  }
+
+  // Filter documents by user first for user isolation
+  const userDocuments = documents.filter(doc => 
+    doc.userId && doc.userId.toString() === userId.toString()
+  );
+
+  const query = searchQuery.toLowerCase().trim();
+  
+  return userDocuments.filter(doc => {
+    // Search across multiple fields: name, manufacturer, location, boxNumber, scale
+    const searchableFields = [
+      doc.name || '',
+      doc.manufacturer || '',
+      doc.location || '',
+      doc.boxNumber || '',
+      doc.scale || ''
+    ];
+    
+    // Check if any field contains the search query (case-insensitive, partial match)
+    return searchableFields.some(field => 
+      field.toLowerCase().includes(query)
+    );
+  });
+};
+
+// Mock Figure.aggregate for Atlas Search operations
+const Figure = require('../src/models/Figure').default;
+
+if (Figure && Figure.aggregate) {
+  const originalAggregate = Figure.aggregate.bind(Figure);
+  
+  Figure.aggregate = function(pipeline: any[]) {
+    // Check if pipeline contains $search stage
+    const searchStage = pipeline.find(stage => stage.$search);
+    
+    if (searchStage && searchStage.$search) {
+      // Mock Atlas Search behavior
+      const searchQuery = searchStage.$search.text?.query || '';
+      const searchPath = searchStage.$search.path || 'name';
+      
+      // Return a mock aggregation result
+      return {
+        exec: async () => {
+          // Get all documents and apply mock search
+          const allDocs = await Figure.find({}).lean();
+          
+          // Extract userId from other pipeline stages (like $match)
+          let userId = null;
+          const matchStage = pipeline.find(stage => stage.$match);
+          if (matchStage && matchStage.$match.userId) {
+            userId = matchStage.$match.userId;
+          }
+          
+          // Filter documents by user and search query
+          const filteredDocs = mockAtlasSearch(searchQuery, allDocs, userId)
+            .map(doc => ({
+              ...doc,
+              score: { searchScore: Math.random() * 10 } // Simulate Atlas Search score
+            }));
+          
+          return filteredDocs;
+        }
+      };
+    }
+    
+    // Fall back to original aggregate for non-search operations
+    return originalAggregate(pipeline);
+  };
+}
