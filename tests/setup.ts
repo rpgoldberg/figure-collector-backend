@@ -122,32 +122,47 @@ if (Figure && Figure.aggregate) {
     
     if (searchStage && searchStage.$search) {
       // Mock Atlas Search behavior
-      const searchQuery = searchStage.$search.text?.query || '';
-      const searchPath = searchStage.$search.path || 'name';
+      let searchQuery = '';
+      let userId = null;
       
-      // Return a mock aggregation result
-      return {
-        exec: async () => {
-          // Get all documents and apply mock search
-          const allDocs = await Figure.find({}).lean();
-          
-          // Extract userId from other pipeline stages (like $match)
-          let userId = null;
-          const matchStage = pipeline.find(stage => stage.$match);
-          if (matchStage && matchStage.$match.userId) {
-            userId = matchStage.$match.userId;
+      // Handle compound query structure
+      if (searchStage.$search.compound) {
+        const compound = searchStage.$search.compound;
+        
+        // Extract search query from compound.must[].text.query
+        if (compound.must && compound.must.length > 0) {
+          const textSearch = compound.must.find((item: any) => item.text);
+          if (textSearch && textSearch.text) {
+            searchQuery = textSearch.text.query || '';
           }
-          
-          // Filter documents by user and search query
-          const filteredDocs = mockAtlasSearch(searchQuery, allDocs, userId)
-            .map(doc => ({
-              ...doc,
-              score: { searchScore: Math.random() * 10 } // Simulate Atlas Search score
-            }));
-          
-          return filteredDocs;
         }
-      };
+        
+        // Extract userId from compound.filter[].equals.value
+        if (compound.filter && compound.filter.length > 0) {
+          const userFilter = compound.filter.find((item: any) => item.equals && item.equals.path === 'userId');
+          if (userFilter && userFilter.equals) {
+            userId = userFilter.equals.value;
+          }
+        }
+      } else {
+        // Handle simple text search
+        searchQuery = searchStage.$search.text?.query || '';
+      }
+      
+      // Return a Promise that resolves to filtered documents
+      return Promise.resolve().then(async () => {
+        // Get all documents
+        const allDocs = await Figure.find({}).lean();
+        
+        // Filter documents by user and search query
+        const filteredDocs = mockAtlasSearch(searchQuery, allDocs, userId)
+          .map(doc => ({
+            ...doc,
+            score: { searchScore: Math.random() * 10 } // Simulate Atlas Search score
+          }));
+        
+        return filteredDocs;
+      });
     }
     
     // Fall back to original aggregate for non-search operations

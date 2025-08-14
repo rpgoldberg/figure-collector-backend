@@ -19,7 +19,7 @@ describe('FigureController', () => {
 
   beforeEach(() => {
     mockRequest = {
-      user: { id: 'user123' },
+      user: { id: '000000000000000000000123' },
       query: {},
       params: {},
       body: {}
@@ -37,8 +37,8 @@ describe('FigureController', () => {
   describe('getFigures', () => {
     it('should get figures with default pagination', async () => {
       const mockFigures = [
-        { _id: 'fig1', manufacturer: 'GSC', name: 'Miku', userId: 'user123' },
-        { _id: 'fig2', manufacturer: 'Alter', name: 'Rin', userId: 'user123' }
+        { _id: 'fig1', manufacturer: 'GSC', name: 'Miku', userId: '000000000000000000000123' },
+        { _id: 'fig2', manufacturer: 'Alter', name: 'Rin', userId: '000000000000000000000123' }
       ];
 
       const mockFind = {
@@ -52,7 +52,7 @@ describe('FigureController', () => {
 
       await figureController.getFigures(mockRequest as Request, mockResponse as Response);
 
-      expect(MockedFigure.find).toHaveBeenCalledWith({ userId: 'user123' });
+      expect(MockedFigure.find).toHaveBeenCalledWith({ userId: '000000000000000000000123' });
       expect(mockFind.sort).toHaveBeenCalledWith({ createdAt: -1 });
       expect(mockFind.skip).toHaveBeenCalledWith(0);
       expect(mockFind.limit).toHaveBeenCalledWith(10);
@@ -114,7 +114,7 @@ describe('FigureController', () => {
         _id: 'fig123',
         manufacturer: 'GSC',
         name: 'Miku',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       };
 
       mockRequest.params = { id: 'fig123' };
@@ -124,7 +124,7 @@ describe('FigureController', () => {
 
       expect(MockedFigure.findOne).toHaveBeenCalledWith({
         _id: 'fig123',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -160,7 +160,7 @@ describe('FigureController', () => {
       const mockCreatedFigure = {
         _id: 'fig123',
         ...mockRequest.body,
-        userId: 'user123'
+        userId: '000000000000000000000123'
       };
 
       MockedFigure.create = jest.fn().mockResolvedValue(mockCreatedFigure);
@@ -175,7 +175,7 @@ describe('FigureController', () => {
         location: 'Shelf A',
         boxNumber: 'Box 1',
         imageUrl: undefined,
-        userId: 'user123'
+        userId: '000000000000000000000123'
       });
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -205,7 +205,7 @@ describe('FigureController', () => {
         scale: '1/8',
         mfcLink: 'https://myfigurecollection.net/item/12345',
         imageUrl: 'https://example.com/image.jpg',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       };
 
       // Mock scraper service call
@@ -233,7 +233,7 @@ describe('FigureController', () => {
         location: '',
         boxNumber: '',
         imageUrl: 'https://example.com/image.jpg',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       });
     });
 
@@ -259,7 +259,7 @@ describe('FigureController', () => {
         manufacturer: '',
         name: '',
         mfcLink: 'https://myfigurecollection.net/item/12345',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       };
 
       MockedFigure.create = jest.fn().mockResolvedValue(mockCreatedFigure);
@@ -284,7 +284,7 @@ describe('FigureController', () => {
         _id: 'fig123',
         manufacturer: 'Old Manufacturer',
         name: 'Old Name',
-        userId: 'user123',
+        userId: '000000000000000000000123',
         mfcLink: ''
       };
 
@@ -293,7 +293,7 @@ describe('FigureController', () => {
         manufacturer: 'Updated Manufacturer',
         name: 'Updated Name',
         scale: '1/7',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       };
 
       MockedFigure.findOne = jest.fn().mockResolvedValue(mockExistingFigure);
@@ -303,7 +303,7 @@ describe('FigureController', () => {
 
       expect(MockedFigure.findOne).toHaveBeenCalledWith({
         _id: 'fig123',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       });
       expect(MockedFigure.findByIdAndUpdate).toHaveBeenCalledWith(
         'fig123',
@@ -343,7 +343,7 @@ describe('FigureController', () => {
         _id: 'fig123',
         manufacturer: 'GSC',
         name: 'Miku',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       };
 
       MockedFigure.findOne = jest.fn().mockResolvedValue(mockFigure);
@@ -353,7 +353,7 @@ describe('FigureController', () => {
 
       expect(MockedFigure.findOne).toHaveBeenCalledWith({
         _id: 'fig123',
-        userId: 'user123'
+        userId: '000000000000000000000123'
       });
       expect(MockedFigure.deleteOne).toHaveBeenCalledWith({ _id: 'fig123' });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
@@ -457,10 +457,16 @@ describe('FigureController', () => {
           _id: 'fig1',
           manufacturer: 'GSC',
           name: 'Hatsune Miku',
+          scale: '1/8',
+          mfcLink: '',
+          location: 'Shelf A',
+          boxNumber: 'Box 1',
+          imageUrl: 'https://example.com/image.jpg',
           userId: new mongoose.Types.ObjectId(userId)
         }
       ];
 
+      // Mock aggregate to return a mock result without calling the actual function
       MockedFigure.aggregate = jest.fn().mockResolvedValue(mockSearchResults);
 
       await figureController.searchFigures(mockRequest as Request, mockResponse as Response);
@@ -493,10 +499,27 @@ describe('FigureController', () => {
       ]);
 
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        success: true,
-        count: 1,
-        data: expect.any(Array)
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          count: 1,
+          data: expect.any(Array)
+        })
+      );
+      
+      // Check the actual response data separately for better debugging
+      const responseCall = (mockResponse.json as jest.Mock).mock.calls[0][0];
+      expect(responseCall.data).toHaveLength(1);
+      expect(responseCall.data[0]).toMatchObject({
+        id: 'fig1',
+        manufacturer: 'GSC',
+        name: 'Hatsune Miku',
+        scale: '1/8',
+        mfcLink: '',
+        location: 'Shelf A',
+        boxNumber: 'Box 1',
+        imageUrl: 'https://example.com/image.jpg',
+        userId: expect.any(mongoose.Types.ObjectId)
       });
     });
 
@@ -535,7 +558,7 @@ describe('FigureController', () => {
       await figureController.filterFigures(mockRequest as Request, mockResponse as Response);
 
       expect(MockedFigure.find).toHaveBeenCalledWith({
-        userId: 'user123',
+        userId: '000000000000000000000123',
         manufacturer: { $regex: 'GSC', $options: 'i' },
         scale: '1/8',
         location: { $regex: 'Shelf', $options: 'i' }

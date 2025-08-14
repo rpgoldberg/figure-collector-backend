@@ -184,4 +184,3 @@ describe('Atlas Search Integration Tests', () => {
     });
   });
 });
-EOF < /dev/null

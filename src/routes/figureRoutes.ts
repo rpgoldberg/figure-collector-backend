@@ -11,6 +11,11 @@ import {
   getFigureStats
 } from '../controllers/figureController';
 import { protect } from '../middleware/authMiddleware';
+import { 
+  validateRequest, 
+  schemas, 
+  validateContentType 
+} from '../middleware/validationMiddleware';
 
 const router = express.Router();
 
@@ -21,16 +26,30 @@ router.post('/scrape-mfc', scrapeMFCData);
 router.use(protect);
 
 router.route('/')
-  .get(getFigures)
-  .post(createFigure);
+  .get(validateRequest(schemas.pagination), getFigures)
+  .post(
+    validateContentType(['application/json']),
+    validateRequest(schemas.figure), 
+    createFigure
+  );
 
-router.get('/search', searchFigures);
-router.get('/filter', filterFigures);
+router.get('/search', 
+  validateRequest(schemas.pagination), 
+  searchFigures
+);
+router.get('/filter', 
+  validateRequest(schemas.pagination), 
+  filterFigures
+);
 router.get('/stats', getFigureStats);
 
 router.route('/:id')
   .get(getFigureById)
-  .put(updateFigure)
+  .put(
+    validateContentType(['application/json']),
+    validateRequest(schemas.figure), 
+    updateFigure
+  )
   .delete(deleteFigure);
 
 export default router;

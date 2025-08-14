@@ -417,6 +417,7 @@ describe('Route Validation and Error Handling', () => {
           .expect(401);
 
         expect(response.body.success).toBe(false);
+        expect(response.body.message).toBe('Not authorized, no token');
       }
     });
 

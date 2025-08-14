@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import figureRoutes from './routes/figureRoutes';
 import userRoutes from './routes/userRoutes';
 import { connectDB } from './config/db';
+import { globalErrorHandler } from './middleware/validationMiddleware';
 import * as packageJson from '../package.json';
 
 dotenv.config();
@@ -166,6 +167,14 @@ app.get('/version', async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch version information' });
   }
+});
+
+// Global error handling middleware (after all routes)
+app.use(globalErrorHandler);
+
+// Catch-all for unhandled routes
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 // Start the server
