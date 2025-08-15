@@ -114,10 +114,10 @@ describe('Route Validation and Error Handling', () => {
           .post('/figures')
           .set('Authorization', `Bearer ${authToken}`)
           .send(figureData)
-          .expect(201);
+          .expect(422);
 
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.manufacturer).toBe(longString);
+        expect(response.body.message).toBe('Validation Error');
+        expect(response.body.errors).toBeDefined();
       });
 
       it('should handle null values in optional fields', async () => {
@@ -135,9 +135,10 @@ describe('Route Validation and Error Handling', () => {
           .post('/figures')
           .set('Authorization', `Bearer ${authToken}`)
           .send(figureData)
-          .expect(201);
+          .expect(422);
 
-        expect(response.body.success).toBe(true);
+        expect(response.body.message).toBe('Validation Error');
+        expect(response.body.errors).toBeDefined();
       });
 
       it('should handle nested object attacks', async () => {
@@ -153,10 +154,11 @@ describe('Route Validation and Error Handling', () => {
           .post('/figures')
           .set('Authorization', `Bearer ${authToken}`)
           .send(maliciousData)
-          .expect(201);
+          .expect(422);
 
-        expect(response.body.success).toBe(true);
-        // MongoDB should handle this gracefully by converting to string
+        expect(response.body.message).toBe('Validation Error');
+        expect(response.body.errors).toBeDefined();
+        // Validation middleware should reject nested object attacks
       });
     });
 
@@ -167,10 +169,10 @@ describe('Route Validation and Error Handling', () => {
         const response = await request(app)
           .post('/users/register')
           .send(incompleteData)
-          .expect(500);
+          .expect(422);
 
-        expect(response.body.success).toBe(false);
-        expect(response.body.message).toBe('Server Error');
+        expect(response.body.message).toBe('Validation Error');
+        expect(response.body.errors).toBeDefined();
       });
 
       it('should handle extremely long username', async () => {
@@ -182,11 +184,11 @@ describe('Route Validation and Error Handling', () => {
 
         const response = await request(app)
           .post('/users/register')
-          .send(userData);
+          .send(userData)
+          .expect(422);
 
-        // Should either succeed or fail gracefully
-        expect([201, 500]).toContain(response.status);
-        expect(response.body.success).toBeDefined();
+        expect(response.body.message).toBe('Validation Error');
+        expect(response.body.errors).toBeDefined();
       });
 
       it('should handle invalid email formats', async () => {
@@ -210,8 +212,10 @@ describe('Route Validation and Error Handling', () => {
             .post('/users/register')
             .send(userData);
 
-          // Should handle invalid emails (may succeed or fail depending on validation)
-          expect([201, 400, 500]).toContain(response.status);
+          // Should reject invalid email format with validation error
+          expect(response.status).toBe(422);
+          expect(response.body.success).toBe(false);
+          expect(response.body.message).toMatch(/validation/i);
         }
       });
 
@@ -369,10 +373,10 @@ describe('Route Validation and Error Handling', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .set('Content-Type', 'text/plain')
         .send('This is plain text, not JSON')
-        .expect(201); // Express might still parse this
+        .expect(415); // Should reject unsupported media type
 
-      // Should handle gracefully
-      expect(response.body).toBeDefined();
+      expect(response.body.message).toBe('Unsupported Media Type');
+      expect(response.body.allowedTypes).toBeDefined();
     });
 
     it('should handle XML content type', async () => {
@@ -384,8 +388,9 @@ describe('Route Validation and Error Handling', () => {
         .set('Content-Type', 'application/xml')
         .send(xmlData);
 
-      // Should handle gracefully, might succeed or fail
-      expect([201, 400, 500]).toContain(response.status);
+      // Should reject unsupported media type
+      expect(response.status).toBe(415);
+      expect(response.body.message).toBe('Unsupported Media Type');
     });
   });
 
