@@ -14,7 +14,8 @@ import { protect } from '../middleware/authMiddleware';
 import { 
   validateRequest, 
   schemas, 
-  validateContentType 
+  validateContentType,
+  validateObjectId 
 } from '../middleware/validationMiddleware';
 
 const router = express.Router();
@@ -44,12 +45,13 @@ router.get('/filter',
 router.get('/stats', getFigureStats);
 
 router.route('/:id')
-  .get(getFigureById)
+  .get(validateObjectId(), getFigureById)
   .put(
+    validateObjectId(),
     validateContentType(['application/json']),
     validateRequest(schemas.figure), 
     updateFigure
   )
-  .delete(deleteFigure);
+  .delete(validateObjectId(), deleteFigure);
 
 export default router;

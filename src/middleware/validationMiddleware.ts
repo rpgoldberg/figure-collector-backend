@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
+import mongoose from 'mongoose';
 
 export const validateRequest = (schema: Joi.ObjectSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -76,11 +77,66 @@ export const validateContentType = (allowedTypes: string[]) => {
   };
 };
 
-// Global error handler
+// SECURITY FIX: MongoDB ObjectId validation middleware
+export const validateObjectId = (paramName: string = 'id') => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const id = req.params[paramName];
+    
+    if (!id) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation Error',
+        errors: [{ message: `${paramName} parameter is required`, path: [paramName] }]
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation Error', 
+        errors: [{ message: `Invalid ${paramName} format`, path: [paramName] }]
+      });
+    }
+
+    next();
+  };
+};
+
+// SECURITY FIX: Enhanced global error handler with CastError handling
 export const globalErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err);
 
+  // Handle Mongoose CastError (invalid ObjectId) as validation error, not server error
+  if (err.name === 'CastError' && err.message.includes('ObjectId')) {
+    return res.status(422).json({
+      success: false,
+      message: 'Validation Error',
+      errors: [{ message: 'Invalid ID format', path: ['id'] }]
+    });
+  }
+
+  // Handle Mongoose ValidationError  
+  if (err.name === 'ValidationError') {
+    return res.status(422).json({
+      success: false,
+      message: 'Validation Error',
+      errors: Object.values((err as any).errors).map((error: any) => ({
+        message: error.message,
+        path: [error.path]
+      }))
+    });
+  }
+
+  // Handle JSON parsing errors
+  if (err.name === 'SyntaxError' && err.message.includes('JSON')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON format'
+    });
+  }
+
   res.status(500).json({
+    success: false,
     message: 'Internal Server Error',
     error: process.env.NODE_ENV === 'production' ? {} : err.message
   });

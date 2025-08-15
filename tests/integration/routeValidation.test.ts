@@ -23,13 +23,14 @@ describe('Route Validation and Error Handling', () => {
 
   describe('Figure Routes Parameter Validation', () => {
     describe('GET /figures/:id', () => {
-      it('should return 400 for invalid ObjectId format', async () => {
+      it('should return 422 for invalid ObjectId format', async () => {
         const response = await request(app)
           .get('/figures/invalid-id')
           .set('Authorization', `Bearer ${authToken}`)
-          .expect(500); // Mongoose throws CastError which becomes 500
+          .expect(422); // SECURITY FIX: Invalid ObjectId should be validation error, not server error
 
         expect(response.body.success).toBe(false);
+        expect(response.body.message).toMatch(/validation|invalid/i);
       });
 
       it('should handle very long invalid IDs gracefully', async () => {
@@ -38,9 +39,10 @@ describe('Route Validation and Error Handling', () => {
         const response = await request(app)
           .get(`/figures/${longInvalidId}`)
           .set('Authorization', `Bearer ${authToken}`)
-          .expect(500);
+          .expect(422); // SECURITY FIX: Invalid ID format should be validation error
 
         expect(response.body.success).toBe(false);
+        expect(response.body.message).toMatch(/validation|invalid/i);
       });
 
       it('should handle special characters in ID parameter', async () => {
@@ -49,14 +51,15 @@ describe('Route Validation and Error Handling', () => {
         const response = await request(app)
           .get(`/figures/${specialCharId}`)
           .set('Authorization', `Bearer ${authToken}`)
-          .expect(500);
+          .expect(422); // SECURITY FIX: Invalid ID format should be validation error
 
         expect(response.body.success).toBe(false);
+        expect(response.body.message).toMatch(/validation|invalid/i);
       });
     });
 
     describe('PUT /figures/:id', () => {
-      it('should return 400 for invalid ObjectId in update', async () => {
+      it('should return 422 for invalid ObjectId in update', async () => {
         const updateData = {
           manufacturer: 'Updated Manufacturer',
           name: 'Updated Name'
@@ -66,20 +69,22 @@ describe('Route Validation and Error Handling', () => {
           .put('/figures/invalid-update-id')
           .set('Authorization', `Bearer ${authToken}`)
           .send(updateData)
-          .expect(500);
+          .expect(422); // SECURITY FIX: Invalid ObjectId should be validation error
 
         expect(response.body.success).toBe(false);
+        expect(response.body.message).toMatch(/validation|invalid/i);
       });
     });
 
     describe('DELETE /figures/:id', () => {
-      it('should return 400 for invalid ObjectId in delete', async () => {
+      it('should return 422 for invalid ObjectId in delete', async () => {
         const response = await request(app)
           .delete('/figures/invalid-delete-id')
           .set('Authorization', `Bearer ${authToken}`)
-          .expect(500);
+          .expect(422); // SECURITY FIX: Invalid ObjectId should be validation error
 
         expect(response.body.success).toBe(false);
+        expect(response.body.message).toMatch(/validation|invalid/i);
       });
     });
   });
@@ -231,10 +236,21 @@ describe('Route Validation and Error Handling', () => {
           .send(sqlInjectionData);
 
         // Should handle this gracefully (MongoDB isn't SQL so this should just be treated as strings)
-        expect([201, 400, 500]).toContain(response.status);
-        if (response.status === 201) {
-          expect(response.body.data.username).toBe("admin'; DROP TABLE users; --");
+        // SECURITY FIX: SQL injection attempts should result in validation error, not success
+        expect([422, 400, 500]).toContain(response.status);
+        
+        // Check response structure - some validation errors may not have success field
+        if (response.body.success !== undefined) {
+          expect(response.body.success).toBe(false);
         }
+        
+        // For 422 responses, expect validation error message
+        if (response.status === 422) {
+          expect(response.body.message).toMatch(/validation/i);
+        }
+        
+        // Critical: SQL injection should NEVER result in 201 success
+        expect(response.status).not.toBe(201);
       });
     });
   });
