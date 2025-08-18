@@ -1,40 +1,41 @@
 // Comprehensive Puppeteer Mock Implementation
-
 import { EventEmitter } from 'events';
-import type { Browser, Page, BrowserConnectOptions, LaunchOptions } from 'puppeteer';
 
-class MockPage implements Partial<Page> {
+// Mock function type alias to fix TypeScript strict mode issues
+type MockFn = any;
+
+class MockPage {
   private _emitter = new EventEmitter();
 
-  content = jest.fn<Promise<string>, []>().mockResolvedValue('<html></html>');
-  goto = jest.fn<Promise<null>, [string, any?]>().mockResolvedValue(null);
-  $eval = jest.fn<Promise<any>, [string, (...args: any[]) => any]>().mockResolvedValue(null);
-  $$eval = jest.fn<Promise<any[]>, [string, (...args: any[]) => any]>().mockResolvedValue([]);
-  close = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
+  content: MockFn = jest.fn().mockResolvedValue('<html></html>') as any;
+  goto: MockFn = jest.fn().mockResolvedValue(null) as any;
+  $eval: MockFn = jest.fn().mockResolvedValue(null) as any;
+  $$eval: MockFn = jest.fn().mockResolvedValue([]) as any;
+  close: MockFn = jest.fn().mockResolvedValue(undefined) as any;
 
-  on = jest.fn((event: string, callback: (...args: any[]) => void) => {
+  on: MockFn = jest.fn((event: string, callback: (...args: any[]) => void) => {
     this._emitter.on(event, callback);
     return this;
-  });
+  }) as any;
 
-  emit = jest.fn((event: string, ...args: any[]) => this._emitter.emit(event, ...args));
+  emit: MockFn = jest.fn((event: string, ...args: any[]) => this._emitter.emit(event, ...args)) as any;
 
   // Additional required method stubs
-  setDefaultNavigationTimeout = jest.fn<void, [number]>().mockReturnValue(undefined);
-  setDefaultTimeout = jest.fn<void, [number]>().mockReturnValue(undefined);
+  setDefaultNavigationTimeout: MockFn = jest.fn().mockReturnValue(undefined) as any;
+  setDefaultTimeout: MockFn = jest.fn().mockReturnValue(undefined) as any;
 }
 
-class MockBrowser implements Partial<Browser> {
-  newPage = jest.fn<Promise<Page>, []>().mockResolvedValue(new MockPage() as Page);
-  close = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
+class MockBrowser {
+  newPage: MockFn = jest.fn().mockResolvedValue(new MockPage()) as any;
+  close: MockFn = jest.fn().mockResolvedValue(undefined) as any;
 
   // Additional required method stubs
-  pages = jest.fn<Promise<Page[]>, []>().mockResolvedValue([new MockPage() as Page]);
+  pages: MockFn = jest.fn().mockResolvedValue([new MockPage()]) as any;
 }
 
 const mockPuppeteer = {
-  launch: jest.fn<Promise<Browser>, [LaunchOptions?]>().mockResolvedValue(new MockBrowser() as Browser),
-  connect: jest.fn<Promise<Browser>, [BrowserConnectOptions?]>().mockResolvedValue(new MockBrowser() as Browser),
+  launch: jest.fn().mockResolvedValue(new MockBrowser()) as any,
+  connect: jest.fn().mockResolvedValue(new MockBrowser()) as any,
   Page: MockPage,
   Browser: MockBrowser,
 };

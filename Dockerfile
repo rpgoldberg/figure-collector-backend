@@ -11,9 +11,8 @@ COPY . .
 
 RUN npm run build
 
-# Port will be set by environment variable
-ENV PORT=5050
-EXPOSE ${PORT}
+# Port will be set by environment variable at runtime
+# EXPOSE will be handled by Docker Compose port mapping
 
 RUN apk add --no-cache curl
 

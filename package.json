@@ -12,7 +12,8 @@
     "test:atlas": "NODE_OPTIONS=--experimental-vm-modules TEST_MODE=atlas npx jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:search": "jest tests/controllers/figureController.test.ts tests/integration/figureRoutes.test.ts --testNamePattern='search|Search'"
+    "test:search": "jest tests/controllers/figureController.test.ts tests/integration/figureRoutes.test.ts --testNamePattern='search|Search'",
+    "test:inter-service": "NODE_OPTIONS=--experimental-vm-modules npx jest tests/integration/inter-service --runInBand"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -36,7 +37,7 @@
     "@types/supertest": "^2.0.12",
     "jest": "^29.7.0",
     "jest-extended": "^6.0.0",
-    "mongodb-memory-server": "^9.1.1",
+    "mongodb-memory-server": "^10.1.2",
     "puppeteer": "^24.16.1",
     "supertest": "^6.3.3",
     "ts-jest": "^29.4.1",
