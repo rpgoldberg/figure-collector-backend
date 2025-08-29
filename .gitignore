@@ -3,9 +3,12 @@ node_modules/
 
 # Build outputs
 /dist
+build/
 
 # Test coverage reports
 coverage/
+test-results/
+.nyc_output/
 
 # Environment variables
 .env
@@ -34,5 +37,18 @@ Thumbs.db
 # Serena cache
 .serena/
 
-# Backup files
+# Backup and temporary files
 *.backup
+*.tmp
+*.bak
+
+# Dependency caches
+.npm
+.cache/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Claude Code configuration
+.claude/
+CLAUDE.md

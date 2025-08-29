@@ -2,7 +2,7 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/testSetup.ts'],
   testMatch: ['<rootDir>/tests/**/*.test.ts'],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
@@ -24,5 +24,10 @@ module.exports = {
   maxWorkers: '50%',
   detectOpenHandles: true,
   forceExit: true,
-  verbose: true
+  verbose: true,
+  // Continue all tests even after failures to capture complete metrics
+  bail: false,
+  passWithNoTests: true,
+  errorOnDeprecated: false,
+  // Run all tests in sequence to avoid cross-test interference (configured via CLI instead)
 };
