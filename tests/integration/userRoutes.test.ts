@@ -48,10 +48,10 @@ describe('User Routes Integration', () => {
       const response = await request(app)
         .post('/users/register')
         .send(incompleteData)
-        .expect(500);
+        .expect(422);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Server Error');
+      expect(response.body.message).toBe('Validation Error');
     });
 
     it('should return error for duplicate username', async () => {
@@ -126,9 +126,10 @@ describe('User Routes Integration', () => {
       const response = await request(app)
         .post('/users/register')
         .send(userData)
-        .expect(500);
+        .expect(422);
 
       expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Validation Error');
     });
   });
 
@@ -206,9 +207,10 @@ describe('User Routes Integration', () => {
       const response = await request(app)
         .post('/users/login')
         .send({})
-        .expect(401);
+        .expect(422);
 
       expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe('Validation Error');
     });
 
     it('should login admin user successfully', async () => {

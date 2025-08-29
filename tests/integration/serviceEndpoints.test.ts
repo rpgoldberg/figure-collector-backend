@@ -4,6 +4,12 @@ import { createTestApp } from '../helpers/testApp';
 const app = createTestApp();
 
 describe('Service Endpoints Integration', () => {
+  beforeEach(async () => {
+    // Reset service state before each test for isolation
+    await request(app)
+      .post('/test-reset-services')
+      .expect(200);
+  });
   describe('GET /health', () => {
     it('should return health check status', async () => {
       const response = await request(app)
@@ -307,12 +313,13 @@ describe('Service Endpoints Integration', () => {
       });
 
       it('should handle empty version string', async () => {
-        await request(app)
+        const registerResponse = await request(app)
           .post('/register-service')
           .send({
             serviceName: 'frontend',
             version: ''
-          });
+          })
+          .expect(200);
 
         const response = await request(app)
           .get('/version')
