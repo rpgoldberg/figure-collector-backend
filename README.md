@@ -89,7 +89,7 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 
 ## 🧪 Testing
 
-The backend includes comprehensive test coverage with 200+ test cases across 15 test suites.
+The backend includes extensive test infrastructure with enhanced Docker testing, comprehensive test suites, and robust automation scripts. We now have 250+ test cases covering multiple dimensions of application functionality across multiple test configurations.
 
 ### Test Coverage
 
@@ -136,12 +136,26 @@ npm run test:coverage
 # Run in watch mode (development)
 npm run test:watch
 
+# Run Docker-based test suite
+npm run test:docker
+
 # Run specific test suite
 npx jest tests/integration/auth.test.ts
+
+# Run performance stress tests
+npx jest tests/performance/stress.test.ts
 
 # Run tests matching pattern
 npx jest --testNamePattern="user authentication"
 ```
+
+### Docker Testing Infrastructure
+
+- Comprehensive Docker test containers for isolated testing
+- Automated test scripts for containerized environment
+- Supports both CI/CD and local development testing modes
+- Performance and stress testing via dedicated Docker configurations
+- Cross-platform compatibility with WSL and native Linux environments
 
 ### Test Configuration
 
@@ -177,6 +191,12 @@ The backend uses Jest with TypeScript support:
 - Added comprehensive type configuration for Jest and Node.js
 - Improved mock type handling to reduce compilation friction
 - Enhanced test file discovery and coverage reporting
+- Implemented Docker-based testing infrastructure
+- Added comprehensive middleware and configuration tests
+- Enhanced controller validation and error handling test coverage
+- Introduced performance and stress testing modules
+- Improved API route validation testing
+- Added database connection and isolation testing
 
 ### Mocking Strategy
 
