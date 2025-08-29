@@ -27,19 +27,18 @@ router.post('/scrape-mfc', scrapeMFCData);
 router.use(protect);
 
 router.route('/')
-  .get(validateRequest(schemas.pagination), getFigures)
+  .get(validateRequest(schemas.pagination, 'query'), getFigures)
   .post(
     validateContentType(['application/json']),
-    validateRequest(schemas.figure), 
+    validateRequest(schemas.figureCreate), 
     createFigure
   );
 
 router.get('/search', 
-  validateRequest(schemas.pagination), 
   searchFigures
 );
 router.get('/filter', 
-  validateRequest(schemas.pagination), 
+  validateRequest(schemas.filter, 'query'), 
   filterFigures
 );
 router.get('/stats', getFigureStats);
@@ -49,7 +48,7 @@ router.route('/:id')
   .put(
     validateObjectId(),
     validateContentType(['application/json']),
-    validateRequest(schemas.figure), 
+    validateRequest(schemas.figureUpdate), 
     updateFigure
   )
   .delete(validateObjectId(), deleteFigure);

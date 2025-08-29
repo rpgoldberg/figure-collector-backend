@@ -16,12 +16,12 @@ const router = express.Router();
 
 router.post('/register', 
   validateContentType(['application/json']),
-  validateRequest(schemas.user), 
+  validateRequest(schemas.userRegister), 
   registerUser
 );
 router.post('/login', 
   validateContentType(['application/json']),
-  validateRequest(schemas.user), 
+  validateRequest(schemas.userLogin), 
   loginUser
 );
 
@@ -31,7 +31,7 @@ router.route('/profile')
   .get(getUserProfile)
   .put(
     validateContentType(['application/json']),
-    validateRequest(schemas.user), 
+    validateRequest(schemas.userUpdate), 
     updateUserProfile
   );
 
