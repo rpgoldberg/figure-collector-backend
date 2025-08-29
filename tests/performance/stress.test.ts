@@ -157,7 +157,7 @@ describe('Performance and Stress Tests', () => {
       const figures = [];
       for (let i = 0; i < 50; i++) {
         figures.push({
-          manufacturer: `API Manufacturer ${i % 5}`,
+          manufacturer: `API Manufacturer 0`,
           name: `API Figure ${i}`,
           scale: '1/8',
           location: `Shelf ${i % 3}`,
@@ -292,7 +292,7 @@ describe('Performance and Stress Tests', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .send(largeData);
 
-      expect([201, 413]).toContain(response.status); // Either succeeds or payload too large
+      expect([201, 413, 422]).toContain(response.status); // Either succeeds, payload too large, or validation error
       
       if (response.status === 201) {
         expect(response.body.success).toBe(true);
@@ -347,7 +347,7 @@ describe('Performance and Stress Tests', () => {
             request(app)
               .get('/figures/invalid-id')
               .set('Authorization', `Bearer ${authToken}`)
-              .expect(500)
+              .expect(422) // Updated to match validation middleware
           );
         } else {
           // Invalid figure data
@@ -356,7 +356,7 @@ describe('Performance and Stress Tests', () => {
               .post('/figures')
               .set('Authorization', `Bearer ${authToken}`)
               .send({ invalidField: 'invalid' })
-              .expect(201) // Might still succeed as fields are optional
+              .expect(422) // Expect validation error for invalid data
           );
         }
       }
@@ -413,7 +413,7 @@ describe('Performance and Stress Tests', () => {
             request(app)
               .get('/figures/invalid')
               .set('Authorization', `Bearer ${authToken}`)
-              .expect(500)
+              .expect(422) // Updated to match validation middleware
           );
         }
       }

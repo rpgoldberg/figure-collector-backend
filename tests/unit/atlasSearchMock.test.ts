@@ -18,16 +18,20 @@ const testMockAtlasSearch = (searchQuery: string, documents: any[], userId: mong
     doc.userId && doc.userId.toString() === userId.toString()
   );
   
-  // Perform text search simulation
+  // Perform precise text search simulation
   const results = userDocuments.filter(doc => {
     return searchFields.some(field => {
       const fieldValue = doc[field]?.toLowerCase() || '';
-      // Simulate fuzzy matching (exact match, starts with, or contains)
-      return fieldValue === query || 
-             fieldValue.startsWith(query) || 
-             fieldValue.includes(query) ||
-             // Simulate fuzzy matching with 1 edit distance
-             (query.length > 2 && fieldValue.includes(query.substring(0, query.length - 1)));
+      // Strict matching: exact match, starts with, or whole word
+      const matchConditions = [
+        fieldValue === query,               // Exact match
+        fieldValue.startsWith(query + ' '), // Starts with whole word  
+        fieldValue.includes(' ' + query + ' '), // Whole word in middle
+        fieldValue.endsWith(' ' + query),   // Ends with whole word
+        fieldValue === query.trim()         // Exact match with trim
+      ];
+
+      return matchConditions.some(Boolean);
     });
   });
   
@@ -155,13 +159,11 @@ describe('Atlas Search Mock Validation', () => {
       expect(results.every(r => r.manufacturer === 'Good Smile Company')).toBe(true);
     });
 
-    it('should perform partial matching', () => {
-      const results = testMockAtlasSearch('Mik', testDocuments, testUserId);
+    it('should perform precise whole word matching', () => {
+      const results = testMockAtlasSearch('Rin', testDocuments, testUserId);
       
-      expect(results.length).toBeGreaterThanOrEqual(2);
-      const names = results.map(r => r.name);
-      expect(names.some(name => name.includes('Miku'))).toBe(true);
-      expect(names.some(name => name.includes('Mikasa'))).toBe(true);
+      expect(results).toHaveLength(1);
+      expect(results[0].name).toBe('Kagamine Rin');
     });
 
     it('should return empty array for no matches', () => {
@@ -265,12 +267,11 @@ describe('Atlas Search Mock Validation', () => {
       expect(results[0].name).toBe('Hatsune Miku');
     });
 
-    it('should simulate 1-character edit distance', () => {
-      // This tests the fuzzy logic with shortened queries
+    it('should require precise matching', () => {
+      // Verify that partial matches do not return results
       const results = testMockAtlasSearch('Hat', testDocuments, testUserId);
       
-      expect(results.length).toBeGreaterThan(0);
-      expect(results[0].name).toBe('Hatsune Miku');
+      expect(results).toHaveLength(0);
     });
   });
 });
