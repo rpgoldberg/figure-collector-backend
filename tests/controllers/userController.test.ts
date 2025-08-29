@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { registerUser, loginUser, getUserProfile, updateUserProfile } from '../../src/controllers/userController';
 import User from '../../src/models/User';
 import jwt from 'jsonwebtoken';
+import '../setup'; // Import test setup for environment variables
 
 // Mock User model
 jest.mock('../../src/models/User');

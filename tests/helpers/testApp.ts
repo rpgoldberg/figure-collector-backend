@@ -34,7 +34,7 @@ export const createTestApp = () => {
     try {
       const { serviceName, version, name } = req.body;
       
-      if (!serviceName || !version) {
+      if (!serviceName || version === undefined || version === null) {
         return res.status(400).json({ error: 'serviceName and version are required' });
       }
       
@@ -51,6 +51,18 @@ export const createTestApp = () => {
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to register service' });
     }
+  });
+
+  // Add endpoint to reset service state for test isolation
+  app.post('/test-reset-services', (req, res) => {
+    serviceVersions = {
+      frontend: {
+        name: "figure-collector-frontend",
+        version: "unknown", 
+        status: "not-registered"
+      }
+    };
+    res.json({ success: true, message: 'Service state reset' });
   });
 
   app.get('/version', async (req, res) => {
