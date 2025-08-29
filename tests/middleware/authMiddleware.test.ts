@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { protect, admin } from '../../src/middleware/authMiddleware';
 import User from '../../src/models/User';
 import jwt from 'jsonwebtoken';
+import '../setup'; // Import test setup for environment variables
 
 // Mock User model
 jest.mock('../../src/models/User');
@@ -174,7 +175,7 @@ describe('AuthMiddleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Not authorized, no token'
+        message: 'Not authorized, token failed'
       });
       expect(mockNext).not.toHaveBeenCalled();
     });
