@@ -12,6 +12,7 @@ dotenv.config();
 
 // Initialize Express app
 const app = express();
+export { app };
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -45,7 +46,7 @@ app.post('/register-service', (req, res) => {
   try {
     const { serviceName, version, name } = req.body;
     
-    if (!serviceName || !version) {
+    if (!serviceName || version === undefined || version === null) {
       return res.status(400).json({ error: 'serviceName and version are required' });
     }
     
@@ -77,7 +78,7 @@ app.get('/version', async (req, res) => {
     };
     
     try {
-      const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
+      const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-manager:3001';
       console.log(`[VERSION] Attempting to fetch app version from: ${versionServiceUrl}/app-version`);
       
       const appVersionResponse = await fetch(`${versionServiceUrl}/app-version`);
@@ -95,7 +96,7 @@ app.get('/version', async (req, res) => {
         console.warn(`[VERSION] Version service returned non-OK status: ${appVersionResponse.status}`);
       }
     } catch (error: any) {
-      console.warn(`[VERSION] Could not fetch app version from ${process.env.VERSION_SERVICE_URL || 'http://version-service:3001'}: ${error.message}`);
+      console.warn(`[VERSION] Could not fetch app version from ${process.env.VERSION_SERVICE_URL || 'http://version-manager:3001'}: ${error.message}`);
     }
 
     const versionInfo: any = {
@@ -151,7 +152,7 @@ app.get('/version', async (req, res) => {
       if (backend && frontend && scraper && 
           backend !== 'unknown' && frontend !== 'unknown' && scraper !== 'unknown') {
         
-        const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
+        const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-manager:3001';
         const validationResponse = await fetch(`${versionServiceUrl}/validate-versions?backend=${backend}&frontend=${frontend}&scraper=${scraper}`);
         
         if (validationResponse.ok) {
