@@ -69,12 +69,19 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const user = await User.findById(req.user.id);
     
-    if (user && user.isAdmin) {
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized, user not found'
+      });
+    }
+    
+    if (user.isAdmin) {
       next();
     } else {
-      res.status(401).json({
+      res.status(403).json({
         success: false,
-        message: 'Not authorized as admin'
+        message: 'Access denied. Admin privileges required'
       });
     }
   } catch (error: any) {
