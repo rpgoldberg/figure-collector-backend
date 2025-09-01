@@ -34,9 +34,6 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Serena cache
-.serena/
-
 # Backup and temporary files
 *.backup
 *.tmp
@@ -49,6 +46,10 @@ Thumbs.db
 # TypeScript build info
 *.tsbuildinfo
 
-# Claude Code configuration
-.claude/
-CLAUDE.md
+# Include Claude Code configurations for team collaboration
+# These provide valuable development infrastructure and agent definitions
+# !.claude/
+# !CLAUDE.md
+# Exclude only personal Claude preferences
+.claude/personal/
+.claude/user-*/
