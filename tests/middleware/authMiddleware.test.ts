@@ -275,10 +275,10 @@ describe('AuthMiddleware', () => {
       await admin(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(MockedUser.findById).toHaveBeenCalledWith('user123');
-      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Not authorized as admin'
+        message: 'Access denied. Admin privileges required'
       });
       expect(mockNext).not.toHaveBeenCalled();
     });
@@ -291,7 +291,7 @@ describe('AuthMiddleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Not authorized as admin'
+        message: 'Not authorized, user not found'
       });
       expect(mockNext).not.toHaveBeenCalled();
     });

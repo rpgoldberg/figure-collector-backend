@@ -77,7 +77,7 @@ describe('User Routes Integration', () => {
       const response = await request(app)
         .post('/users/register')
         .send(userData2)
-        .expect(400);
+        .expect(409);
 
       expect(response.body).toEqual({
         success: false,
@@ -108,7 +108,7 @@ describe('User Routes Integration', () => {
       const response = await request(app)
         .post('/users/register')
         .send(userData2)
-        .expect(400);
+        .expect(409);
 
       expect(response.body).toEqual({
         success: false,

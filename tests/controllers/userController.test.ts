@@ -85,7 +85,7 @@ describe('UserController', () => {
 
       await registerUser(mockRequest as Request, mockResponse as Response);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.status).toHaveBeenCalledWith(409);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
         message: 'User already exists'
@@ -104,7 +104,7 @@ describe('UserController', () => {
 
       await registerUser(mockRequest as Request, mockResponse as Response);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.status).toHaveBeenCalledWith(409);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
         message: 'User already exists'
