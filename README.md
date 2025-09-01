@@ -10,7 +10,7 @@ Backend API service for the Figure Collector application. Provides endpoints for
 - Filtering and statistics
 - Service version orchestration and aggregation
 - Frontend service registration endpoint
-- Version validation with version-service integration
+- Version validation with version-manager integration
 
 ## Technology Stack
 
@@ -26,7 +26,7 @@ The backend acts as the central orchestrator for version management:
 
 - **Service Registration**: Provides `/register-service` endpoint for frontend self-registration
 - **Version Aggregation**: Collects versions from all services (frontend via registration, scraper via API call)
-- **Version Validation**: Integrates with version-service to validate service version combinations
+- **Version Validation**: Integrates with version-manager to validate service version combinations
 - **Unified API**: Provides single `/version` endpoint with all service information and validation status
 
 ## Development
@@ -80,7 +80,7 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 - `MONGODB_URI`: MongoDB Atlas connection string
 - `JWT_SECRET`: Secret for JWT token signing
 - `SCRAPER_SERVICE_URL`: URL to page-scraper service (e.g., `http://page-scraper-dev:3010`)
-- `VERSION_SERVICE_URL`: URL to version-service (e.g., `http://version-service-dev:3011`)
+- `VERSION_MANAGER_URL`: URL to version-manager (e.g., `http://version-manager-dev:3011`)
 - `PORT`: Port for backend service (default: 5000)
 - `NODE_ENV`: Environment (development/production)
 
@@ -89,7 +89,7 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 
 ## 🧪 Testing
 
-The backend includes extensive test infrastructure with enhanced Docker testing, comprehensive test suites, and robust automation scripts. We now have 250+ test cases covering multiple dimensions of application functionality across multiple test configurations.
+The backend includes extensive test infrastructure with enhanced Docker testing, comprehensive test suites, and robust automation scripts. We now have 288/288 tests passing, covering multiple dimensions of application functionality across multiple test configurations. The enhanced MongoDB Memory Server provides robust, isolated testing capabilities.
 
 ### Test Coverage
 
@@ -197,6 +197,8 @@ The backend uses Jest with TypeScript support:
 - Introduced performance and stress testing modules
 - Improved API route validation testing
 - Added database connection and isolation testing
+- Implemented enhanced MongoDB Memory Server for robust testing
+- Completed SHALLTEAR PROTOCOL: Comprehensive test validation across all scenarios
 
 ### Mocking Strategy
 
