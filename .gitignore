@@ -3,6 +3,12 @@ node_modules/
 
 # Build outputs
 /dist
+build/
+
+# Test coverage reports
+coverage/
+test-results/
+.nyc_output/
 
 # Environment variables
 .env
@@ -27,3 +33,23 @@ yarn-error.log*
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+# Backup and temporary files
+*.backup
+*.tmp
+*.bak
+
+# Dependency caches
+.npm
+.cache/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Include Claude Code configurations for team collaboration
+# These provide valuable development infrastructure and agent definitions
+# !.claude/
+# !CLAUDE.md
+# Exclude only personal Claude preferences
+.claude/personal/
+.claude/user-*/

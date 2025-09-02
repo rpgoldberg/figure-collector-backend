@@ -5,12 +5,14 @@ import dotenv from 'dotenv';
 import figureRoutes from './routes/figureRoutes';
 import userRoutes from './routes/userRoutes';
 import { connectDB } from './config/db';
+import { globalErrorHandler } from './middleware/validationMiddleware';
 import * as packageJson from '../package.json';
 
 dotenv.config();
 
 // Initialize Express app
 const app = express();
+export { app };
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -44,7 +46,7 @@ app.post('/register-service', (req, res) => {
   try {
     const { serviceName, version, name } = req.body;
     
-    if (!serviceName || !version) {
+    if (!serviceName || version === undefined || version === null) {
       return res.status(400).json({ error: 'serviceName and version are required' });
     }
     
@@ -68,7 +70,7 @@ app.post('/register-service', (req, res) => {
 // Version endpoint
 app.get('/version', async (req, res) => {
   try {
-    // Fetch app info from infra version service
+    // Fetch app info from version manager service
     let appInfo = {
       name: "figure-collector-services",
       version: "unknown",
@@ -76,10 +78,10 @@ app.get('/version', async (req, res) => {
     };
     
     try {
-      const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
-      console.log(`[VERSION] Attempting to fetch app version from: ${versionServiceUrl}/app-version`);
+      const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
+      console.log(`[VERSION] Attempting to fetch app version from: ${versionManagerUrl}/app-version`);
       
-      const appVersionResponse = await fetch(`${versionServiceUrl}/app-version`);
+      const appVersionResponse = await fetch(`${versionManagerUrl}/app-version`);
       console.log(`[VERSION] Version service response status: ${appVersionResponse.status}`);
       
       if (appVersionResponse.ok) {
@@ -94,7 +96,7 @@ app.get('/version', async (req, res) => {
         console.warn(`[VERSION] Version service returned non-OK status: ${appVersionResponse.status}`);
       }
     } catch (error: any) {
-      console.warn(`[VERSION] Could not fetch app version from ${process.env.VERSION_SERVICE_URL || 'http://version-service:3001'}: ${error.message}`);
+      console.warn(`[VERSION] Could not fetch app version from ${process.env.VERSION_MANAGER_URL || 'http://version-manager:3001'}: ${error.message}`);
     }
 
     const versionInfo: any = {
@@ -150,8 +152,8 @@ app.get('/version', async (req, res) => {
       if (backend && frontend && scraper && 
           backend !== 'unknown' && frontend !== 'unknown' && scraper !== 'unknown') {
         
-        const versionServiceUrl = process.env.VERSION_SERVICE_URL || 'http://version-service:3001';
-        const validationResponse = await fetch(`${versionServiceUrl}/validate-versions?backend=${backend}&frontend=${frontend}&scraper=${scraper}`);
+        const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
+        const validationResponse = await fetch(`${versionManagerUrl}/validate-versions?backend=${backend}&frontend=${frontend}&scraper=${scraper}`);
         
         if (validationResponse.ok) {
           const validationData = await validationResponse.json();
@@ -166,6 +168,14 @@ app.get('/version', async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch version information' });
   }
+});
+
+// Global error handling middleware (after all routes)
+app.use(globalErrorHandler);
+
+// Catch-all for unhandled routes
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
 });
 
 // Start the server

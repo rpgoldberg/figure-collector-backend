@@ -243,30 +243,68 @@ export const scrapeMFCData = async (req: Request, res: Response) => {
 export const getFigures = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+    const validationErrors: string[] = [];
+    
+    // Validate page parameter
+    const pageParam = req.query.page as string;
+    const page = parseInt(pageParam, 10);
+    if (pageParam && (isNaN(page) || page <= 0)) {
+      validationErrors.push('Page must be a positive integer');
+    }
+    
+    // Validate limit parameter
+    const limitParam = req.query.limit as string;
+    const limit = parseInt(limitParam, 10);
+    if (limitParam && (isNaN(limit) || limit <= 0 || limit > 100)) {
+      validationErrors.push('Limit must be between 1 and 100');
+    }
+    
+    // Return validation errors if any
+    if (validationErrors.length > 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation Error',
+        errors: validationErrors
+      });
+    }
+    
+    // Use default values if not specified
+    const validPage = page || 1;
+    const validLimit = limit || 10;
+    const skip = (validPage - 1) * validLimit;
+
+    const total = await Figure.countDocuments({ userId });
+    const pages = Math.ceil(total / validLimit);
+
+    // Additional page validation
+    if (validPage > pages && total > 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation Error',
+        errors: ['Requested page is beyond available pages']
+      });
+    }
 
     const figures = await Figure.find({ userId })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(validLimit);
 
-    const total = await Figure.countDocuments({ userId });
-    
     res.status(200).json({
       success: true,
       count: figures.length,
-      page,
-      pages: Math.ceil(total / limit),
+      page: validPage,
+      pages,
       total,
       data: figures
     });
   } catch (error: any) {
+    console.error('Get Figures Error:', error);
+    
     res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: 'An unexpected error occurred while fetching figures'
     });
   }
 };
@@ -306,19 +344,67 @@ export const createFigure = async (req: Request, res: Response) => {
     const userId = req.user.id;
     const { manufacturer, name, scale, mfcLink, location, boxNumber, imageUrl } = req.body;
     
+    // Basic validation is now handled by Joi middleware
+    // Only need to validate URLs here since Joi doesn't have custom URL domain validation
+    const validationErrors: string[] = [];
+    
+    if (mfcLink) {
+      try {
+        const parsedUrl = new URL(mfcLink);
+        if (!parsedUrl.hostname.includes('myfigurecollection.net')) {
+          validationErrors.push('Invalid MFC link domain');
+        }
+      } catch {
+        validationErrors.push('Invalid MFC link format');
+      }
+    }
+    
+    if (imageUrl) {
+      try {
+        new URL(imageUrl);
+      } catch {
+        validationErrors.push('Invalid image URL format');
+      }
+    }
+    
+    // Return validation errors if any
+    if (validationErrors.length > 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation Error',
+        errors: validationErrors
+      });
+    }
+    
+    // Check for duplicate figure for the user (only if we have manufacturer and name)
+    if (manufacturer && manufacturer.trim() && name && name.trim()) {
+      const existingFigure = await Figure.findOne({
+        userId,
+        manufacturer: manufacturer.trim(),
+        name: name.trim()
+      });
+      
+      if (existingFigure) {
+        return res.status(409).json({
+          success: false,
+          message: 'A figure with the same name and manufacturer already exists'
+        });
+      }
+    }
+    
     // Start with provided data
     let finalData = {
-      manufacturer,
-      name,
-      scale,
-      imageUrl,
-      location: location || '', // Allow empty strings
-      boxNumber: boxNumber || '' // Allow empty strings
+      manufacturer: manufacturer ? manufacturer.trim() : '',
+      name: name ? name.trim() : '',
+      scale: scale ? scale.trim() : '',
+      imageUrl: imageUrl ? imageUrl.trim() : '',
+      location: location ? location.trim() : '',
+      boxNumber: boxNumber ? boxNumber.trim() : ''
     };
     
     // If MFC link is provided, scrape missing data
     if (mfcLink && mfcLink.trim()) {
-      const scrapedData = await scrapeDataFromMFC(mfcLink);
+      const scrapedData = await scrapeDataFromMFC(mfcLink.trim());
       
       // Only use scraped data if the field is empty
       if (!finalData.imageUrl && scrapedData.imageUrl) {
@@ -335,11 +421,28 @@ export const createFigure = async (req: Request, res: Response) => {
       }
     }
     
+    // Post-scraping validation: ensure required fields are now available
+    const postScrapingErrors: string[] = [];
+    if (!finalData.manufacturer || finalData.manufacturer.trim().length === 0) {
+      postScrapingErrors.push('Manufacturer is required and could not be scraped from MFC');
+    }
+    if (!finalData.name || finalData.name.trim().length === 0) {
+      postScrapingErrors.push('Name is required and could not be scraped from MFC');
+    }
+    
+    if (postScrapingErrors.length > 0) {
+      return res.status(422).json({
+        success: false,
+        message: 'Validation failed after MFC scraping',
+        errors: postScrapingErrors
+      });
+    }
+    
     const figure = await Figure.create({
       manufacturer: finalData.manufacturer,
       name: finalData.name,
       scale: finalData.scale,
-      mfcLink: mfcLink || '', //allow empty string
+      mfcLink: mfcLink ? mfcLink.trim() : '',
       location: finalData.location,
       boxNumber: finalData.boxNumber,
       imageUrl: finalData.imageUrl,
@@ -351,10 +454,23 @@ export const createFigure = async (req: Request, res: Response) => {
       data: figure
     });
   } catch (error: any) {
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
+      return res.status(422).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
+    // Log server errors for debugging
+    console.error('Create Figure Error:', error);
+    
     res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: 'An unexpected error occurred during figure creation'
     });
   }
 };
@@ -485,51 +601,83 @@ export const searchFigures = async (req: Request, res: Response) => {
     }
 
     // Convert userId to ObjectId for the filter
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    let userObjectId: mongoose.Types.ObjectId;
+    try {
+      userObjectId = new mongoose.Types.ObjectId(userId);
+    } catch (error) {
+      console.error('Invalid userId for ObjectId conversion:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user identifier'
+      });
+    }
     
-    // MongoDB Atlas Search query
-    const searchResults = await Figure.aggregate([
-      {
-        $search: {
-          index: 'figures', // The name of your search index created in Atlas
-          compound: {
-            must: [
-              {
-                text: {
-                  query: query as string,
-                  path: ['manufacturer', 'name', 'location', 'boxNumber'],
-                  fuzzy: {
-                    maxEdits: 1,
-                    prefixLength: 2
+    // Use different search logic based on environment
+    let searchResults;
+    
+    if (process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'memory') {
+      // Fallback search for test environment that simulates Atlas Search behavior
+      const searchTerms = (query as string).split(' ').filter(term => term.trim().length > 0);
+      
+      // Create regex patterns for each search term
+      const regexConditions = searchTerms.map(term => ({
+        $or: [
+          { manufacturer: { $regex: term, $options: 'i' } },
+          { name: { $regex: term, $options: 'i' } },
+          { location: { $regex: term, $options: 'i' } },
+          { boxNumber: { $regex: term, $options: 'i' } }
+        ]
+      }));
+      
+      searchResults = await Figure.find({
+        userId: userObjectId,
+        $and: regexConditions // All search terms must be found (simulates Atlas Search behavior)
+      });
+    } else {
+      // MongoDB Atlas Search query for production
+      searchResults = await Figure.aggregate([
+        {
+          $search: {
+            index: 'figures',
+            compound: {
+              must: [
+                {
+                  text: {
+                    query: query as string,
+                    path: ['manufacturer', 'name', 'location', 'boxNumber'],
+                    fuzzy: {
+                      maxEdits: 1,
+                      prefixLength: 2
+                    }
                   }
                 }
-              }
-            ],
-            filter: [
-              {
-                equals: {
-                  path: 'userId',
-                  value: userObjectId // Use ObjectId instead of string
+              ],
+              filter: [
+                {
+                  equals: {
+                    path: 'userId',
+                    value: userObjectId
+                  }
                 }
-              }
-            ]
+              ]
+            }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            manufacturer: 1,
+            name: 1,
+            scale: 1,
+            mfcLink: 1,
+            location: 1,
+            boxNumber: 1,
+            imageUrl: 1,
+            userId: 1
           }
         }
-      },
-      {
-        $project: {
-          _id: 1,
-          manufacturer: 1,
-          name: 1,
-          scale: 1,
-          mfcLink: 1,
-          location: 1,
-          boxNumber: 1,
-          imageUrl: 1,
-          userId: 1
-        }
-      }
-    ]);
+      ]);
+    }
     
     // Transform to match expected API format
     const hits = searchResults.map(doc => ({
@@ -567,26 +715,56 @@ export const filterFigures = async (req: Request, res: Response) => {
     const query: any = { userId };
     
     if (manufacturer) query.manufacturer = { $regex: manufacturer as string, $options: 'i' };
-    if (scale) query.scale = scale;
+    if (scale) query.scale = { $regex: scale as string, $options: 'i' };
     if (location) query.location = { $regex: location as string, $options: 'i' };
-    if (boxNumber) query.boxNumber = boxNumber;
+    if (boxNumber) query.boxNumber = { $regex: boxNumber as string, $options: 'i' };
     
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+    const pageParam = req.query.page as string;
+    const page = parseInt(pageParam, 10);
+    if (pageParam && (isNaN(page) || page <= 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pagination validation failed',
+        errors: ['Page must be a positive integer']
+      });
+    }
+
+    const limitParam = req.query.limit as string;
+    const limit = parseInt(limitParam, 10);
+    if (limitParam && (isNaN(limit) || limit <= 0 || limit > 100)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pagination validation failed',
+        errors: ['Limit must be between 1 and 100']
+      });
+    }
+    
+    const validPage = page || 1;
+    const validLimit = limit || 10;
+    const skip = (validPage - 1) * validLimit;
+    
+    const total = await Figure.countDocuments(query);
+    const pages = Math.ceil(total / validLimit);
+
+    // Validate page is within total pages
+    if (validPage > pages && total > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pagination validation failed',
+        errors: [`Requested page ${validPage} is beyond the total of ${pages} pages`]
+      });
+    }
     
     const figures = await Figure.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
-      
-    const total = await Figure.countDocuments(query);
+      .limit(validLimit);
     
     res.status(200).json({
       success: true,
       count: figures.length,
-      page,
-      pages: Math.ceil(total / limit),
+      page: validPage,
+      pages,
       total,
       data: figures
     });
@@ -603,27 +781,38 @@ export const filterFigures = async (req: Request, res: Response) => {
 export const getFigureStats = async (req: Request, res: Response) => {
   try {
     const userId = req.user.id;
+    let userObjectId: mongoose.Types.ObjectId;
+    
+    try {
+      userObjectId = new mongoose.Types.ObjectId(userId);
+    } catch (error) {
+      console.error('Invalid userId for ObjectId conversion:', error);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user identifier'
+      });
+    }
     
     // Total count
-    const totalCount = await Figure.countDocuments({ userId });
+    const totalCount = await Figure.countDocuments({ userId: userObjectId });
     
     // Count by manufacturer
     const manufacturerStats = await Figure.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      { $match: { userId: userObjectId } },
       { $group: { _id: '$manufacturer', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
     
     // Count by scale
     const scaleStats = await Figure.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      { $match: { userId: userObjectId } },
       { $group: { _id: '$scale', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);
     
     // Count by location
     const locationStats = await Figure.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      { $match: { userId: userObjectId } },
       { $group: { _id: '$location', count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     ]);

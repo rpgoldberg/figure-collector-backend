@@ -18,52 +18,48 @@ declare global {
 }
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
-  let token;
-  
-  // Check for token in headers
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      // Get token from header
-      token = req.headers.authorization.split(' ')[1];
-      
-      // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as JwtPayload;
-      
-      // Add user ID to request
-      req.user = {
-        id: decoded.id
-      };
-      
-      // Check if token is close to expiring (refresh if less than 15 minutes left)
-      const currentTime = Math.floor(Date.now() / 1000);
-      const tokenExpiry = (decoded as any).exp;
-      const timeUntilExpiry = tokenExpiry - currentTime;
-      
-      // If less than 15 minutes (900 seconds) left, issue a new token
-      if (timeUntilExpiry < 900) {
-        const newToken = jwt.sign(
-          { id: decoded.id },
-          process.env.JWT_SECRET || 'secret',
-          { expiresIn: '60m' }
-        );
-        
-        // Send new token in response header
-        res.setHeader('X-New-Token', newToken);
-      }
-      
-      next();
-    } catch (error) {
-      res.status(401).json({
-        success: false,
-        message: 'Not authorized, token failed'
-      });
-    }
-  }
-  
-  if (!token) {
-    res.status(401).json({
+  // Early check for Authorization header
+  if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer')) {
+    return res.status(401).json({
       success: false,
       message: 'Not authorized, no token'
+    });
+  }
+
+  try {
+    // Get token from header
+    const token = req.headers.authorization.split(' ')[1];
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as JwtPayload;
+
+    // Add user ID to request
+    req.user = {
+      id: decoded.id
+    };
+
+    // Check if token is close to expiring (refresh if less than 15 minutes left)
+    const currentTime = Math.floor(Date.now() / 1000);
+    const tokenExpiry = (decoded as any).exp;
+    const timeUntilExpiry = tokenExpiry - currentTime;
+
+    // If less than 15 minutes (900 seconds) left, issue a new token
+    if (timeUntilExpiry < 900) {
+      const newToken = jwt.sign(
+        { id: decoded.id },
+        process.env.JWT_SECRET || 'secret',
+        { expiresIn: '60m' }
+      );
+
+      // Send new token in response header
+      res.setHeader('X-New-Token', newToken);
+    }
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized, token failed'
     });
   }
 };
@@ -73,12 +69,19 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
   try {
     const user = await User.findById(req.user.id);
     
-    if (user && user.isAdmin) {
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized, user not found'
+      });
+    }
+    
+    if (user.isAdmin) {
       next();
     } else {
-      res.status(401).json({
+      res.status(403).json({
         success: false,
-        message: 'Not authorized as admin'
+        message: 'Access denied. Admin privileges required'
       });
     }
   } catch (error: any) {
