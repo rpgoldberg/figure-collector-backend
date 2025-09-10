@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import figureRoutes from '../../src/routes/figureRoutes';
 import userRoutes from '../../src/routes/userRoutes';
+import authRoutes from '../../src/routes/authRoutes';
 
 // Create test app
 export const createTestApp = () => {
@@ -13,6 +14,7 @@ export const createTestApp = () => {
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   // Routes
+  app.use('/auth', authRoutes);
   app.use('/figures', figureRoutes);
   app.use('/users', userRoutes);
 

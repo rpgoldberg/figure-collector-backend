@@ -38,25 +38,28 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
       id: decoded.id
     };
 
-    // Check if token is close to expiring (refresh if less than 15 minutes left)
-    const currentTime = Math.floor(Date.now() / 1000);
-    const tokenExpiry = (decoded as any).exp;
-    const timeUntilExpiry = tokenExpiry - currentTime;
-
-    // If less than 15 minutes (900 seconds) left, issue a new token
-    if (timeUntilExpiry < 900) {
-      const newToken = jwt.sign(
-        { id: decoded.id },
-        process.env.JWT_SECRET || 'secret',
-        { expiresIn: '60m' }
-      );
-
-      // Send new token in response header
-      res.setHeader('X-New-Token', newToken);
-    }
+    // Note: Token refresh is now handled via the /auth/refresh endpoint
+    // Clients should monitor token expiry and refresh as needed
 
     next();
-  } catch (error) {
+  } catch (error: any) {
+    // Provide more specific error messages for better client handling
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expired',
+        code: 'TOKEN_EXPIRED'
+      });
+    }
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
     return res.status(401).json({
       success: false,
       message: 'Not authorized, token failed'
