@@ -211,6 +211,20 @@ npx jest --testNamePattern="user authentication"
 - Performance and stress testing via dedicated Docker configurations
 - Cross-platform compatibility with WSL and native Linux environments
 
+**Toggleable Test Container (`Dockerfile.test`):**
+```bash
+# Build test image
+docker build -f Dockerfile.test -t backend:test .
+
+# Mode 1: Run tests (default)
+docker run backend:test
+
+# Mode 2: Run as service (for integration testing)
+docker run -e RUN_SERVER=1 -p 3015:3015 backend:test
+```
+
+The test container can switch between running tests or starting the service based on the `RUN_SERVER` environment variable, making it flexible for different testing scenarios.
+
 ### Test Configuration
 
 **TypeScript Test Configuration (`tsconfig.test.json`):**
