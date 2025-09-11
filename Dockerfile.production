@@ -10,7 +10,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev for building)
-RUN npm ci
+# Using --ignore-scripts for security to prevent execution of npm scripts
+RUN npm ci --ignore-scripts
 
 # Copy source code
 COPY . .
@@ -44,7 +45,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+# Using --ignore-scripts for security to prevent execution of npm scripts
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
 # Copy built application from builder with read-only permissions
 # Files are owned by root:root with 644 permissions (read-only for non-root)
