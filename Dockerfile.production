@@ -32,11 +32,9 @@ LABEL org.opencontainers.image.description="Backend API service for Figure Colle
 LABEL org.opencontainers.image.vendor="Figure Collector Services"
 LABEL org.opencontainers.image.source="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
+# Install dumb-init and create non-root user in a single layer
+RUN apk add --no-cache dumb-init && \
+    addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
 WORKDIR /app
