@@ -25,7 +25,7 @@ FROM node:20-alpine AS production
 LABEL org.opencontainers.image.title="Figure Collector Backend"
 LABEL org.opencontainers.image.description="Backend API service for Figure Collector"
 LABEL org.opencontainers.image.vendor="Figure Collector Services"
-LABEL org.opencontainers.image.source="https://github.com/yourorg/figure-collector-backend"
+LABEL org.opencontainers.image.source="https://github.com/rpgoldberg/figure-collector-backend"
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
