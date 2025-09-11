@@ -46,12 +46,12 @@ export const createTestApp = () => {
           version: version,
           status: "ok"
         };
-        res.json({ success: true, message: 'Service registered successfully' });
+        return res.json({ success: true, message: 'Service registered successfully' });
       } else {
-        res.status(400).json({ error: 'Only frontend service registration is currently supported' });
+        return res.status(400).json({ error: 'Only frontend service registration is currently supported' });
       }
     } catch (error: any) {
-      res.status(500).json({ error: 'Failed to register service' });
+      return res.status(500).json({ error: 'Failed to register service' });
     }
   });
 
@@ -64,7 +64,7 @@ export const createTestApp = () => {
         status: "not-registered"
       }
     };
-    res.json({ success: true, message: 'Service state reset' });
+    return res.json({ success: true, message: 'Service state reset' });
   });
 
   app.get('/version', async (req, res) => {
