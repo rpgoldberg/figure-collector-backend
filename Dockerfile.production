@@ -21,11 +21,15 @@ RUN npm run build
 # Stage 2: Production
 FROM node:20-alpine AS production
 
+# Build arguments for customization
+ARG GITHUB_ORG=rpgoldberg
+ARG GITHUB_REPO=figure-collector-backend
+
 # Add labels for better tracking
 LABEL org.opencontainers.image.title="Figure Collector Backend"
 LABEL org.opencontainers.image.description="Backend API service for Figure Collector"
 LABEL org.opencontainers.image.vendor="Figure Collector Services"
-LABEL org.opencontainers.image.source="https://github.com/rpgoldberg/figure-collector-backend"
+LABEL org.opencontainers.image.source="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
