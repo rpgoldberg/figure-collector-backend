@@ -6,16 +6,7 @@ interface JwtPayload {
   id: string;
 }
 
-// Extend Express Request interface
-declare global {
-  namespace Express {
-    interface Request {
-      user: {
-        id: string;
-      };
-    }
-  }
-}
+// User type is already declared in src/types/express.d.ts
 
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
   // Early check for Authorization header
