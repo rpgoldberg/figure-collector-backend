@@ -61,6 +61,12 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 // Admin middleware
 export const admin = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized, no user token'
+      });
+    }
     const user = await User.findById(req.user.id);
     
     if (!user) {

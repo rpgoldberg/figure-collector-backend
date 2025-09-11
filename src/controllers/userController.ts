@@ -4,6 +4,12 @@ import User, { IUser } from '../models/User';
 // Get user profile
 export const getUserProfile = async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated'
+      });
+    }
     const user = await User.findById(req.user.id).select('-password');
     
     if (!user) {
@@ -29,6 +35,12 @@ export const getUserProfile = async (req: Request, res: Response) => {
 // Update user profile
 export const updateUserProfile = async (req: Request, res: Response) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated'
+      });
+    }
     const { username, email, password } = req.body;
     
     const user = await User.findById(req.user.id);

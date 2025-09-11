@@ -289,7 +289,7 @@ export const refresh = async (req: Request, res: Response) => {
 };
 
 // Logout user (invalidate refresh token)
-export const logout = async (req: AuthRequest, res: Response) => {
+export const logout = async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
     
@@ -335,7 +335,7 @@ export const logout = async (req: AuthRequest, res: Response) => {
 };
 
 // Logout from all devices
-export const logoutAll = async (req: AuthRequest, res: Response) => {
+export const logoutAll = async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -380,7 +380,7 @@ export const logoutAll = async (req: AuthRequest, res: Response) => {
 };
 
 // Get active sessions (optional - for user dashboard)
-export const getSessions = async (req: AuthRequest, res: Response) => {
+export const getSessions = async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({
