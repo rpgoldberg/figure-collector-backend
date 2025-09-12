@@ -3,7 +3,7 @@ import Joi from 'joi';
 import mongoose from 'mongoose';
 
 export const validateRequest = (schema: Joi.ObjectSchema, source: 'body' | 'query' = 'body') => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void | Response => {
     const dataToValidate = source === 'query' ? req.query : req.body;
     const { error, value } = schema.validate(dataToValidate, { 
       abortEarly: false,  // Return all validation errors, not just the first
@@ -81,6 +81,7 @@ export const validateRequest = (schema: Joi.ObjectSchema, source: 'body' | 'quer
     }
 
     next();
+    return;
   };
 };
 
@@ -280,7 +281,7 @@ export const schemas = {
 
 // Content-type validation middleware
 export const validateContentType = (allowedTypes: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void | Response => {
     const contentType = req.headers['content-type'];
 
     if (!contentType || !allowedTypes.includes(contentType)) {
@@ -291,12 +292,13 @@ export const validateContentType = (allowedTypes: string[]) => {
     }
 
     next();
+    return;
   };
 };
 
 // SECURITY FIX: MongoDB ObjectId validation middleware
 export const validateObjectId = (paramName: string = 'id') => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void | Response => {
     const id = req.params[paramName];
     
     if (!id) {
@@ -316,6 +318,7 @@ export const validateObjectId = (paramName: string = 'id') => {
     }
 
     next();
+    return;
   };
 };
 

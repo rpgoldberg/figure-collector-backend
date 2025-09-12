@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import User, { IUser } from '../models/User';
 
 // Get user profile
-export const getUserProfile = async (req: Request, res: Response) => {
+export const getUserProfile = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -19,12 +19,12 @@ export const getUserProfile = async (req: Request, res: Response) => {
       });
     }
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: user
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -33,7 +33,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
 };
 
 // Update user profile
-export const updateUserProfile = async (req: Request, res: Response) => {
+export const updateUserProfile = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -59,7 +59,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
     
     await user.save();
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
         _id: user._id,
@@ -69,7 +69,7 @@ export const updateUserProfile = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message

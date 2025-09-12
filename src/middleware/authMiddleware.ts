@@ -8,7 +8,7 @@ interface JwtPayload {
 
 // User type is already declared in src/types/express.d.ts
 
-export const protect = async (req: Request, res: Response, next: NextFunction) => {
+export const protect = async (req: Request, res: Response, next: NextFunction): Promise<void | Response> => {
   // Early check for Authorization header
   if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer')) {
     return res.status(401).json({
@@ -59,7 +59,7 @@ export const protect = async (req: Request, res: Response, next: NextFunction) =
 };
 
 // Admin middleware
-export const admin = async (req: Request, res: Response, next: NextFunction) => {
+export const admin = async (req: Request, res: Response, next: NextFunction): Promise<void | Response> => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -78,14 +78,15 @@ export const admin = async (req: Request, res: Response, next: NextFunction) => 
     
     if (user.isAdmin) {
       next();
+      return;
     } else {
-      res.status(403).json({
+      return res.status(403).json({
         success: false,
         message: 'Access denied. Admin privileges required'
       });
     }
   } catch (error: any) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message

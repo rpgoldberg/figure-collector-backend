@@ -51,7 +51,7 @@ const saveRefreshToken = async (
 };
 
 // Register a new user
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const { username, email, password } = req.body;
     
@@ -111,7 +111,7 @@ export const register = async (req: Request, res: Response) => {
       });
     }
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -120,7 +120,7 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // Login user
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const { email, password } = req.body;
     
@@ -181,7 +181,7 @@ export const login = async (req: Request, res: Response) => {
       });
     }
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -190,7 +190,7 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // Refresh access token
-export const refresh = async (req: Request, res: Response) => {
+export const refresh = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const { refreshToken } = req.body;
     
@@ -280,7 +280,7 @@ export const refresh = async (req: Request, res: Response) => {
       });
     }
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -289,7 +289,7 @@ export const refresh = async (req: Request, res: Response) => {
 };
 
 // Logout user (invalidate refresh token)
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const { refreshToken } = req.body;
     
@@ -326,7 +326,7 @@ export const logout = async (req: Request, res: Response) => {
       });
     }
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -335,7 +335,7 @@ export const logout = async (req: Request, res: Response) => {
 };
 
 // Logout from all devices
-export const logoutAll = async (req: Request, res: Response) => {
+export const logoutAll = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -371,7 +371,7 @@ export const logoutAll = async (req: Request, res: Response) => {
       });
     }
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -380,7 +380,7 @@ export const logoutAll = async (req: Request, res: Response) => {
 };
 
 // Get active sessions (optional - for user dashboard)
-export const getSessions = async (req: Request, res: Response) => {
+export const getSessions = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -418,7 +418,7 @@ export const getSessions = async (req: Request, res: Response) => {
       });
     }
     
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
