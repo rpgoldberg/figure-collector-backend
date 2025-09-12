@@ -3,6 +3,7 @@ import User from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
+import { sanitizeErrorMessage } from '../utils/errorUtils';
 
 interface TokenPayload {
   id: string;
@@ -22,8 +23,8 @@ const validateJWTConfig = (): void => {
   if (!process.env.JWT_REFRESH_SECRET) {
     throw new Error('FATAL: JWT_REFRESH_SECRET environment variable is required for authentication');
   }
-  // Only allow insecure defaults in test environment
-  if (process.env.NODE_ENV !== 'test') {
+  // Only enforce strict requirements in production
+  if (process.env.NODE_ENV === 'production') {
     if (process.env.JWT_SECRET === 'secret' || process.env.JWT_SECRET.length < 32) {
       throw new Error('FATAL: JWT_SECRET must be at least 32 characters in production');
     }
@@ -38,30 +39,6 @@ if (process.env.NODE_ENV !== 'test') {
   validateJWTConfig();
 }
 
-// Sanitize error messages for production
-const sanitizeErrorMessage = (error: any): string => {
-  const isProd = process.env.NODE_ENV === 'production';
-  
-  if (isProd) {
-    // Log full error details server-side
-    console.error('Authentication error:', error);
-    
-    // Return generic messages in production
-    if (error.name === 'ValidationError') {
-      return 'Validation failed';
-    }
-    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-      return 'Database operation failed';
-    }
-    if (error.name === 'JsonWebTokenError') {
-      return 'Authentication failed';
-    }
-    return 'An error occurred';
-  }
-  
-  // In development/test, return actual error message
-  return error.message || 'An error occurred';
-};
 
 // Generate Access Token (short-lived)
 const generateAccessToken = (id: string): string => {

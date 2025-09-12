@@ -1,27 +1,7 @@
 import { Request, Response } from 'express';
 import User, { IUser } from '../models/User';
+import { sanitizeErrorMessage } from '../utils/errorUtils';
 
-// Sanitize error messages for production
-const sanitizeErrorMessage = (error: any): string => {
-  const isProd = process.env.NODE_ENV === 'production';
-  
-  if (isProd) {
-    // Log full error details server-side
-    console.error('User controller error:', error);
-    
-    // Return generic messages in production
-    if (error.name === 'ValidationError') {
-      return 'Validation failed';
-    }
-    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
-      return 'Database operation failed';
-    }
-    return 'An error occurred';
-  }
-  
-  // In development/test, return actual error message
-  return error.message || 'An error occurred';
-};
 
 // Get user profile
 export const getUserProfile = async (req: Request, res: Response): Promise<Response | void> => {
