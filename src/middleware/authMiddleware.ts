@@ -22,7 +22,11 @@ export const protect = async (req: Request, res: Response, next: NextFunction): 
     const token = req.headers.authorization.split(' ')[1];
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as JwtPayload;
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET not configured');
+    }
+    const decoded = jwt.verify(token, secret) as JwtPayload;
 
     // Add user ID to request
     req.user = {

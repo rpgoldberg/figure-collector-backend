@@ -48,7 +48,7 @@ describe('AuthMiddleware', () => {
 
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(mockedJwt.verify).toHaveBeenCalledWith('valid-token', 'test-secret');
+      expect(mockedJwt.verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
       expect(mockRequest.user).toEqual({ id: 'user123' });
       expect(mockNext).toHaveBeenCalled();
       expect(mockResponse.status).not.toHaveBeenCalled();
@@ -391,7 +391,7 @@ describe('AuthMiddleware', () => {
 
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(mockedJwt.verify).toHaveBeenCalledWith('a'.repeat(1000), 'test-secret');
+      expect(mockedJwt.verify).toHaveBeenCalledWith('a'.repeat(1000), process.env.JWT_SECRET);
       expect(mockNext).toHaveBeenCalled();
     });
 
@@ -410,7 +410,7 @@ describe('AuthMiddleware', () => {
 
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(mockedJwt.verify).toHaveBeenCalledWith('token.with-special_chars+symbols=', 'test-secret');
+      expect(mockedJwt.verify).toHaveBeenCalledWith('token.with-special_chars+symbols=', process.env.JWT_SECRET);
       expect(mockNext).toHaveBeenCalled();
     });
   });

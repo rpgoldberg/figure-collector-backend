@@ -90,29 +90,35 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 
 **Required:**
 - `MONGODB_URI`: MongoDB Atlas connection string
-- `JWT_SECRET`: Secret for JWT token signing
-- `JWT_REFRESH_SECRET`: Secret for refresh token signing
-- `JWT_ACCESS_TOKEN_EXPIRY`: Access token expiration time (default: 15m)
-- `JWT_REFRESH_TOKEN_EXPIRY`: Refresh token expiration time (default: 7d)
+- `JWT_SECRET`: Secret for JWT token signing (⚠️ **MUST be at least 32 characters in production**)
+- `JWT_REFRESH_SECRET`: Secret for refresh token signing (⚠️ **MUST be at least 32 characters in production**)
 - `SCRAPER_SERVICE_URL`: URL to page-scraper service (e.g., `http://page-scraper-dev:3010`)
 - `VERSION_MANAGER_URL`: URL to version-manager (e.g., `http://version-manager-dev:3011`)
 - `PORT`: Port for backend service (default: 5000)
 - `NODE_ENV`: Environment (development/production)
+
+**Optional:**
+- `ACCESS_TOKEN_EXPIRY`: Access token expiration time (default: 15m)
+- `ROTATE_REFRESH_TOKENS`: Enable refresh token rotation for enhanced security (default: false)
+
+**Security Note:** Generate secure secrets using: `openssl rand -base64 32`
 
 **No longer required:**
 - `FRONTEND_HOST`, `FRONTEND_PORT`: Removed due to self-registration architecture
 
 ### Token Management
 
-The authentication system uses a two-token strategy:
-- **Access Token**: Short-lived token for API access (15 minutes expiry)
-- **Refresh Token**: Long-lived token (7 days expiry) stored securely in MongoDB
+The authentication system uses a two-token strategy with enhanced security:
+- **Access Token**: Short-lived JWT for API access (15 minutes expiry by default)
+- **Refresh Token**: Long-lived cryptographically secure token (7 days expiry) stored as HMAC-SHA256 hash in MongoDB
 
-Token Features:
-- Returns both `accessToken` and `refreshToken` on successful login
-- Session tracking allows users to manage and revoke active sessions
-- Automatic token refresh prevents unnecessary re-authentication
-- Enhanced security with device and location tracking for sessions
+Security Features:
+- **Hashed Storage**: Refresh tokens are hashed using HMAC-SHA256 before database storage
+- **Secure Generation**: Refresh tokens use cryptographically secure random generation
+- **Token Rotation**: Optional refresh token rotation on each use (configurable)
+- **Session Tracking**: Device and IP address tracking for all active sessions
+- **Revocation**: Individual or bulk session revocation capabilities
+- **Error Sanitization**: Production environment returns generic error messages to prevent information leakage
 
 Token Response Structure:
 ```json
@@ -278,12 +284,15 @@ The backend uses Jest with TypeScript support:
 
 ### Security Enhancements
 
-Implemented tactical security improvements:
-- Enhanced Joi-based validation middleware
-- Input sanitization for nested object attacks
-- Proper HTTP status codes for validation errors
-- Improved authentication response handling
-- Comprehensive input validation across all endpoints
+Implemented comprehensive security improvements:
+- **JWT Configuration Validation**: Fails fast if JWT secrets aren't properly configured
+- **Minimum Secret Length**: Enforces 32+ character secrets in production environments
+- **Refresh Token Hashing**: HMAC-SHA256 hashing for all stored refresh tokens
+- **Error Message Sanitization**: Generic error messages in production to prevent information disclosure
+- **Enhanced Joi-based validation middleware**: Input validation and sanitization
+- **Input sanitization**: Protection against nested object attacks
+- **Proper HTTP status codes**: Consistent error handling across all endpoints
+- **Session Management**: Comprehensive session tracking and revocation
 
 ### Test Data
 

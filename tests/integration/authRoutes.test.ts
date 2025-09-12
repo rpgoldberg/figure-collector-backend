@@ -4,6 +4,19 @@ import User from '../../src/models/User';
 import RefreshToken from '../../src/models/RefreshToken';
 import { generateTestToken } from '../setup';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
+
+// Helper function to hash refresh tokens like the auth controller does
+const hashRefreshToken = (token: string): string => {
+  const secret = process.env.JWT_REFRESH_SECRET;
+  if (!secret) {
+    throw new Error('JWT_REFRESH_SECRET not configured');
+  }
+  return crypto
+    .createHmac('sha256', secret)
+    .update(token)
+    .digest('hex');
+};
 
 const app = createTestApp();
 
@@ -40,10 +53,11 @@ describe('Auth Routes Integration', () => {
       expect(createdUser?.email).toBe('test@example.com');
       expect(createdUser?.password).not.toBe('password123'); // Should be hashed
 
-      // Verify refresh token was stored
+      // Verify refresh token was stored (hashed)
+      const hashedToken = hashRefreshToken(response.body.data.refreshToken);
       const storedToken = await RefreshToken.findOne({ 
         user: response.body.data._id,
-        token: response.body.data.refreshToken
+        token: hashedToken
       });
       expect(storedToken).toBeTruthy();
     });
@@ -178,10 +192,11 @@ describe('Auth Routes Integration', () => {
         })
       });
 
-      // Verify refresh token was stored
+      // Verify refresh token was stored (hashed)
+      const hashedToken = hashRefreshToken(response.body.data.refreshToken);
       const storedToken = await RefreshToken.findOne({ 
         user: testUser._id,
-        token: response.body.data.refreshToken
+        token: hashedToken
       });
       expect(storedToken).toBeTruthy();
     });
@@ -265,14 +280,15 @@ describe('Auth Routes Integration', () => {
       });
       await testUser.save();
 
-      // Create a valid refresh token
+      // Create a valid refresh token (stored as hash)
       validRefreshToken = 'valid-refresh-token-' + Date.now();
+      const hashedToken = hashRefreshToken(validRefreshToken);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
       
       await RefreshToken.create({
         user: testUser._id,
-        token: validRefreshToken,
+        token: hashedToken,
         expiresAt
       });
     });
@@ -314,14 +330,15 @@ describe('Auth Routes Integration', () => {
     });
 
     it('should return error for expired refresh token', async () => {
-      // Create an expired token
+      // Create an expired token (stored as hash)
       const expiredToken = 'expired-token-' + Date.now();
+      const hashedExpiredToken = hashRefreshToken(expiredToken);
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 1);
       
       await RefreshToken.create({
         user: testUser._id,
-        token: expiredToken,
+        token: hashedExpiredToken,
         expiresAt: pastDate
       });
 
@@ -350,12 +367,13 @@ describe('Auth Routes Integration', () => {
       await tempUser.save();
 
       const tempToken = 'temp-token-' + Date.now();
+      const hashedTempToken = hashRefreshToken(tempToken);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
       
       await RefreshToken.create({
         user: tempUser._id,
-        token: tempToken,
+        token: hashedTempToken,
         expiresAt
       });
 
@@ -373,7 +391,7 @@ describe('Auth Routes Integration', () => {
       });
 
       // Verify token was removed
-      const deletedToken = await RefreshToken.findOne({ token: tempToken });
+      const deletedToken = await RefreshToken.findOne({ token: hashedTempToken });
       expect(deletedToken).toBeNull();
     });
   });
@@ -390,14 +408,15 @@ describe('Auth Routes Integration', () => {
       });
       await testUser.save();
 
-      // Create a refresh token
+      // Create a refresh token (stored as hash)
       refreshToken = 'logout-token-' + Date.now();
+      const hashedRefreshToken = hashRefreshToken(refreshToken);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
       
       await RefreshToken.create({
         user: testUser._id,
-        token: refreshToken,
+        token: hashedRefreshToken,
         expiresAt
       });
     });
@@ -414,7 +433,8 @@ describe('Auth Routes Integration', () => {
       });
 
       // Verify token was removed
-      const deletedToken = await RefreshToken.findOne({ token: refreshToken });
+      const hashedTokenToCheck = hashRefreshToken(refreshToken);
+      const deletedToken = await RefreshToken.findOne({ token: hashedTokenToCheck });
       expect(deletedToken).toBeNull();
     });
 
@@ -444,14 +464,14 @@ describe('Auth Routes Integration', () => {
       await testUser.save();
       authToken = generateTestToken(testUser._id.toString());
 
-      // Create multiple refresh tokens for the user
+      // Create multiple refresh tokens for the user (stored as hashes)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
       
       await RefreshToken.create([
-        { user: testUser._id, token: 'token1', expiresAt },
-        { user: testUser._id, token: 'token2', expiresAt },
-        { user: testUser._id, token: 'token3', expiresAt }
+        { user: testUser._id, token: hashRefreshToken('token1'), expiresAt },
+        { user: testUser._id, token: hashRefreshToken('token2'), expiresAt },
+        { user: testUser._id, token: hashRefreshToken('token3'), expiresAt }
       ]);
     });
 
@@ -506,21 +526,21 @@ describe('Auth Routes Integration', () => {
       await testUser.save();
       authToken = generateTestToken(testUser._id.toString());
 
-      // Create multiple refresh tokens with different device info
+      // Create multiple refresh tokens with different device info (stored as hashes)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
       
       await RefreshToken.create([
         { 
           user: testUser._id, 
-          token: 'desktop-token', 
+          token: hashRefreshToken('desktop-token'), 
           expiresAt,
           deviceInfo: 'Chrome on Windows',
           ipAddress: '192.168.1.1'
         },
         { 
           user: testUser._id, 
-          token: 'mobile-token', 
+          token: hashRefreshToken('mobile-token'), 
           expiresAt,
           deviceInfo: 'Safari on iPhone',
           ipAddress: '192.168.1.2'
@@ -532,7 +552,7 @@ describe('Auth Routes Integration', () => {
       expiredDate.setDate(expiredDate.getDate() - 1);
       await RefreshToken.create({
         user: testUser._id,
-        token: 'expired-token',
+        token: hashRefreshToken('expired-token'),
         expiresAt: expiredDate,
         deviceInfo: 'Old Device',
         ipAddress: '192.168.1.3'

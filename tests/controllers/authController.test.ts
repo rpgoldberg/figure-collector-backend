@@ -71,6 +71,12 @@ describe('AuthController', () => {
       mockedCrypto.randomBytes = jest.fn().mockReturnValue({
         toString: jest.fn().mockReturnValue('refresh-token')
       });
+      // Mock HMAC for hashing the refresh token
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn().mockReturnValue('hashed-refresh-token')
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
       MockedRefreshToken.create = jest.fn().mockResolvedValue({});
 
       await register(mockRequest as Request, mockResponse as Response);
@@ -85,7 +91,7 @@ describe('AuthController', () => {
       });
       expect(MockedRefreshToken.create).toHaveBeenCalledWith(expect.objectContaining({
         user: 'user123',
-        token: 'refresh-token',
+        token: 'hashed-refresh-token', // Now expecting hashed token
         deviceInfo: 'Jest Test Browser',
         ipAddress: '127.0.0.1'
       }));
@@ -158,6 +164,12 @@ describe('AuthController', () => {
       mockedCrypto.randomBytes = jest.fn().mockReturnValue({
         toString: jest.fn().mockReturnValue('refresh-token')
       });
+      // Mock HMAC for hashing the refresh token
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn().mockReturnValue('hashed-refresh-token')
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
       MockedRefreshToken.create = jest.fn().mockResolvedValue({});
 
       await login(mockRequest as Request, mockResponse as Response);
@@ -166,7 +178,7 @@ describe('AuthController', () => {
       expect(mockUser.comparePassword).toHaveBeenCalledWith('password123');
       expect(MockedRefreshToken.create).toHaveBeenCalledWith(expect.objectContaining({
         user: 'user123',
-        token: 'refresh-token'
+        token: 'hashed-refresh-token' // Now expecting hashed token
       }));
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -226,7 +238,7 @@ describe('AuthController', () => {
       const mockStoredToken = {
         _id: 'token123',
         user: 'user123',
-        token: 'valid-refresh-token',
+        token: 'hashed-valid-refresh-token',
         isExpired: jest.fn().mockReturnValue(false)
       };
 
@@ -236,13 +248,20 @@ describe('AuthController', () => {
         email: 'test@example.com'
       };
 
+      // Mock HMAC for hashing the refresh token
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn().mockReturnValue('hashed-valid-refresh-token')
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
+
       MockedRefreshToken.findOne = jest.fn().mockResolvedValue(mockStoredToken);
       MockedUser.findById = jest.fn().mockResolvedValue(mockUser);
       mockedJwt.sign = jest.fn().mockReturnValue('new-access-token');
 
       await refresh(mockRequest as Request, mockResponse as Response);
 
-      expect(MockedRefreshToken.findOne).toHaveBeenCalledWith({ token: 'valid-refresh-token' });
+      expect(MockedRefreshToken.findOne).toHaveBeenCalledWith({ token: 'hashed-valid-refresh-token' });
       expect(MockedUser.findById).toHaveBeenCalledWith('user123');
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({
@@ -266,6 +285,13 @@ describe('AuthController', () => {
     });
 
     it('should return error for invalid refresh token', async () => {
+      // Mock HMAC for hashing the refresh token
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn().mockReturnValue('hashed-invalid-token')
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
+      
       MockedRefreshToken.findOne = jest.fn().mockResolvedValue(null);
 
       await refresh(mockRequest as Request, mockResponse as Response);
@@ -281,9 +307,16 @@ describe('AuthController', () => {
       const mockStoredToken = {
         _id: 'token123',
         user: 'user123',
-        token: 'expired-refresh-token',
+        token: 'hashed-expired-refresh-token',
         isExpired: jest.fn().mockReturnValue(true)
       };
+
+      // Mock HMAC for hashing the refresh token
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn().mockReturnValue('hashed-expired-refresh-token')
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
 
       MockedRefreshToken.findOne = jest.fn().mockResolvedValue(mockStoredToken);
       MockedRefreshToken.findByIdAndDelete = jest.fn().mockResolvedValue({});
@@ -304,7 +337,7 @@ describe('AuthController', () => {
       const mockStoredToken = {
         _id: 'token123',
         user: 'user123',
-        token: 'valid-refresh-token',
+        token: 'hashed-valid-refresh-token',
         isExpired: jest.fn().mockReturnValue(false)
       };
 
@@ -313,6 +346,15 @@ describe('AuthController', () => {
         username: 'testuser',
         email: 'test@example.com'
       };
+
+      // Mock HMAC for hashing both old and new refresh tokens
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn()
+          .mockReturnValueOnce('hashed-valid-refresh-token') // First call for finding token
+          .mockReturnValueOnce('hashed-new-refresh-token') // Second call for creating new token
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
 
       MockedRefreshToken.findOne = jest.fn().mockResolvedValue(mockStoredToken);
       MockedRefreshToken.findByIdAndDelete = jest.fn().mockResolvedValue({});
@@ -328,7 +370,7 @@ describe('AuthController', () => {
       expect(MockedRefreshToken.findByIdAndDelete).toHaveBeenCalledWith('token123');
       expect(MockedRefreshToken.create).toHaveBeenCalledWith(expect.objectContaining({
         user: 'user123',
-        token: 'new-refresh-token'
+        token: 'hashed-new-refresh-token' // Now expecting hashed token
       }));
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
@@ -349,11 +391,18 @@ describe('AuthController', () => {
         refreshToken: 'refresh-token-to-remove'
       };
 
+      // Mock HMAC for hashing the refresh token
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn().mockReturnValue('hashed-refresh-token-to-remove')
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
+
       MockedRefreshToken.deleteOne = jest.fn().mockResolvedValue({});
 
       await logout(mockRequest as Request, mockResponse as Response);
 
-      expect(MockedRefreshToken.deleteOne).toHaveBeenCalledWith({ token: 'refresh-token-to-remove' });
+      expect(MockedRefreshToken.deleteOne).toHaveBeenCalledWith({ token: 'hashed-refresh-token-to-remove' });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: true,
@@ -381,6 +430,13 @@ describe('AuthController', () => {
       mockRequest.body = {
         refreshToken: 'refresh-token'
       };
+
+      // Mock HMAC for hashing the refresh token
+      const mockHmac = {
+        update: jest.fn().mockReturnThis(),
+        digest: jest.fn().mockReturnValue('hashed-refresh-token')
+      };
+      mockedCrypto.createHmac = jest.fn().mockReturnValue(mockHmac as any);
 
       MockedRefreshToken.deleteOne = jest.fn().mockRejectedValue(new Error('Database error'));
 

@@ -14,10 +14,62 @@ interface AuthRequest extends Request {
   };
 }
 
+// Validate JWT configuration on module load
+const validateJWTConfig = (): void => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is required for authentication');
+  }
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('FATAL: JWT_REFRESH_SECRET environment variable is required for authentication');
+  }
+  // Only allow insecure defaults in test environment
+  if (process.env.NODE_ENV !== 'test') {
+    if (process.env.JWT_SECRET === 'secret' || process.env.JWT_SECRET.length < 32) {
+      throw new Error('FATAL: JWT_SECRET must be at least 32 characters in production');
+    }
+    if (process.env.JWT_REFRESH_SECRET === 'secret' || process.env.JWT_REFRESH_SECRET.length < 32) {
+      throw new Error('FATAL: JWT_REFRESH_SECRET must be at least 32 characters in production');
+    }
+  }
+};
+
+// Validate configuration on module load
+if (process.env.NODE_ENV !== 'test') {
+  validateJWTConfig();
+}
+
+// Sanitize error messages for production
+const sanitizeErrorMessage = (error: any): string => {
+  const isProd = process.env.NODE_ENV === 'production';
+  
+  if (isProd) {
+    // Log full error details server-side
+    console.error('Authentication error:', error);
+    
+    // Return generic messages in production
+    if (error.name === 'ValidationError') {
+      return 'Validation failed';
+    }
+    if (error.name === 'MongoError' || error.name === 'MongoServerError') {
+      return 'Database operation failed';
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return 'Authentication failed';
+    }
+    return 'An error occurred';
+  }
+  
+  // In development/test, return actual error message
+  return error.message || 'An error occurred';
+};
+
 // Generate Access Token (short-lived)
 const generateAccessToken = (id: string): string => {
   const payload = { id };
-  const secret = process.env.JWT_SECRET || 'secret';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET not configured');
+  }
   const expiresIn = process.env.ACCESS_TOKEN_EXPIRY || '15m';
   return jwt.sign(payload, secret, { expiresIn: expiresIn as any });
 };
@@ -28,7 +80,19 @@ const generateRefreshToken = (): string => {
   return crypto.randomBytes(40).toString('hex');
 };
 
-// Save refresh token to database
+// Hash refresh token for secure storage
+const hashRefreshToken = (token: string): string => {
+  const secret = process.env.JWT_REFRESH_SECRET;
+  if (!secret) {
+    throw new Error('JWT_REFRESH_SECRET not configured');
+  }
+  return crypto
+    .createHmac('sha256', secret)
+    .update(token)
+    .digest('hex');
+};
+
+// Save refresh token to database (stores hashed version)
 const saveRefreshToken = async (
   userId: string, 
   token: string, 
@@ -41,9 +105,12 @@ const saveRefreshToken = async (
   const deviceInfo = req.headers['user-agent'] || 'Unknown device';
   const ipAddress = req.ip || req.connection.remoteAddress;
   
+  // Store hashed token in database
+  const hashedToken = hashRefreshToken(token);
+  
   await RefreshToken.create({
     user: userId,
-    token,
+    token: hashedToken,  // Store the hashed version
     expiresAt,
     deviceInfo,
     ipAddress
@@ -114,7 +181,7 @@ export const register = async (req: Request, res: Response): Promise<Response | 
     return res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: sanitizeErrorMessage(error)
     });
   }
 };
@@ -184,7 +251,7 @@ export const login = async (req: Request, res: Response): Promise<Response | voi
     return res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: sanitizeErrorMessage(error)
     });
   }
 };
@@ -201,8 +268,11 @@ export const refresh = async (req: Request, res: Response): Promise<Response | v
       });
     }
     
-    // Find refresh token in database
-    const storedToken = await RefreshToken.findOne({ token: refreshToken });
+    // Hash the provided token to compare with stored hash
+    const hashedToken = hashRefreshToken(refreshToken);
+    
+    // Find refresh token in database using hashed version
+    const storedToken = await RefreshToken.findOne({ token: hashedToken });
     
     if (!storedToken) {
       return res.status(401).json({
@@ -283,7 +353,7 @@ export const refresh = async (req: Request, res: Response): Promise<Response | v
     return res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: sanitizeErrorMessage(error)
     });
   }
 };
@@ -294,15 +364,17 @@ export const logout = async (req: Request, res: Response): Promise<Response | vo
     const { refreshToken } = req.body;
     
     if (refreshToken) {
+      // Hash the token to find and remove it
+      const hashedToken = hashRefreshToken(refreshToken);
       // Remove specific refresh token
-      await RefreshToken.deleteOne({ token: refreshToken });
+      await RefreshToken.deleteOne({ token: hashedToken });
     } else if (req.user) {
       // If no refresh token provided but user is authenticated,
       // remove all refresh tokens for this user (logout from all devices)
       await RefreshToken.deleteMany({ user: req.user.id });
     }
     
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Logged out successfully'
     });
@@ -329,7 +401,7 @@ export const logout = async (req: Request, res: Response): Promise<Response | vo
     return res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: sanitizeErrorMessage(error)
     });
   }
 };
@@ -374,7 +446,7 @@ export const logoutAll = async (req: Request, res: Response): Promise<Response |
     return res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: sanitizeErrorMessage(error)
     });
   }
 };
@@ -421,7 +493,7 @@ export const getSessions = async (req: Request, res: Response): Promise<Response
     return res.status(500).json({
       success: false,
       message: 'Server Error',
-      error: error.message
+      error: sanitizeErrorMessage(error)
     });
   }
 };
