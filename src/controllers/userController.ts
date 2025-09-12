@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import User, { IUser } from '../models/User';
-import { sanitizeErrorMessage } from '../utils/errorUtils';
+import { handleErrorResponse } from '../utils/responseUtils';
 
 
 // Get user profile
@@ -26,11 +26,7 @@ export const getUserProfile = async (req: Request, res: Response): Promise<Respo
       data: user
     });
   } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };
 
@@ -71,10 +67,6 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<Re
       }
     });
   } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };

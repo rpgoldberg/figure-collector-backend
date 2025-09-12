@@ -3,7 +3,7 @@ import User from '../models/User';
 import RefreshToken from '../models/RefreshToken';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
-import { sanitizeErrorMessage } from '../utils/errorUtils';
+import { handleErrorResponse } from '../utils/responseUtils';
 
 interface TokenPayload {
   id: string;
@@ -136,30 +136,7 @@ export const register = async (req: Request, res: Response): Promise<Response | 
       }
     });
   } catch (error: any) {
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      return res.status(422).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    // Handle duplicate key errors (shouldn't happen with our check, but just in case)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };
 
@@ -206,30 +183,7 @@ export const login = async (req: Request, res: Response): Promise<Response | voi
       }
     });
   } catch (error: any) {
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      return res.status(422).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    // Handle duplicate key errors (shouldn't happen with our check, but just in case)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };
 
@@ -308,30 +262,7 @@ export const refresh = async (req: Request, res: Response): Promise<Response | v
       }
     });
   } catch (error: any) {
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      return res.status(422).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    // Handle duplicate key errors (shouldn't happen with our check, but just in case)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };
 
@@ -356,30 +287,7 @@ export const logout = async (req: Request, res: Response): Promise<Response | vo
       message: 'Logged out successfully'
     });
   } catch (error: any) {
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      return res.status(422).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    // Handle duplicate key errors (shouldn't happen with our check, but just in case)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };
 
@@ -401,30 +309,7 @@ export const logoutAll = async (req: Request, res: Response): Promise<Response |
       message: 'Logged out from all devices successfully'
     });
   } catch (error: any) {
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      return res.status(422).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    // Handle duplicate key errors (shouldn't happen with our check, but just in case)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };
 
@@ -448,29 +333,6 @@ export const getSessions = async (req: Request, res: Response): Promise<Response
       data: sessions
     });
   } catch (error: any) {
-    // Handle mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message);
-      return res.status(422).json({
-        success: false,
-        message: 'Validation failed',
-        errors: validationErrors
-      });
-    }
-    
-    // Handle duplicate key errors (shouldn't happen with our check, but just in case)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: sanitizeErrorMessage(error)
-    });
+    return handleErrorResponse(res, error);
   }
 };
