@@ -237,11 +237,6 @@ export const schemas = {
     currentPassword: Joi.string().min(1).optional()
   }).min(1),
 
-  // Refresh token validation schema
-  refreshToken: Joi.object({
-    refreshToken: Joi.string().required()
-  }),
-
   // Search validation schema
   search: Joi.object({
     query: Joi.string().min(1).max(100).required(),

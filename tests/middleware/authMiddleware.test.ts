@@ -54,11 +54,10 @@ describe('AuthMiddleware', () => {
       expect(mockResponse.status).not.toHaveBeenCalled();
     });
 
-    it('should pass through without automatic token refresh', async () => {
-      // Token refresh is now handled via /auth/refresh endpoint
+    it('should issue new token when current token is close to expiry', async () => {
       const mockDecodedToken = {
         id: 'user123',
-        exp: Math.floor(Date.now() / 1000) + 300 // 5 minutes from now
+        exp: Math.floor(Date.now() / 1000) + 300 // 5 minutes from now (less than 15 minutes)
       };
 
       mockRequest.headers = {
@@ -66,10 +65,33 @@ describe('AuthMiddleware', () => {
       };
 
       mockedJwt.verify = jest.fn().mockReturnValue(mockDecodedToken);
+      mockedJwt.sign = jest.fn().mockReturnValue('new-token');
 
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
 
-      // Should not automatically refresh tokens anymore
+      expect(mockedJwt.sign).toHaveBeenCalledWith(
+        { id: 'user123' },
+        'test-secret',
+        { expiresIn: '60m' }
+      );
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-New-Token', 'new-token');
+      expect(mockNext).toHaveBeenCalled();
+    });
+
+    it('should not issue new token when current token has plenty of time left', async () => {
+      const mockDecodedToken = {
+        id: 'user123',
+        exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
+      };
+
+      mockRequest.headers = {
+        authorization: 'Bearer fresh-token'
+      };
+
+      mockedJwt.verify = jest.fn().mockReturnValue(mockDecodedToken);
+
+      await protect(mockRequest as Request, mockResponse as Response, mockNext);
+
       expect(mockedJwt.sign).not.toHaveBeenCalled();
       expect(mockResponse.setHeader).not.toHaveBeenCalled();
       expect(mockNext).toHaveBeenCalled();
@@ -80,10 +102,8 @@ describe('AuthMiddleware', () => {
         authorization: 'Bearer invalid-token'
       };
 
-      const invalidError = new Error('Invalid token') as any;
-      invalidError.name = 'JsonWebTokenError';
       mockedJwt.verify = jest.fn().mockImplementation(() => {
-        throw invalidError;
+        throw new Error('Invalid token');
       });
 
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
@@ -91,8 +111,7 @@ describe('AuthMiddleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Invalid token',
-        code: 'INVALID_TOKEN'
+        message: 'Not authorized, token failed'
       });
       expect(mockNext).not.toHaveBeenCalled();
     });
@@ -102,10 +121,10 @@ describe('AuthMiddleware', () => {
         authorization: 'Bearer expired-token'
       };
 
-      const expiredError = new Error('Token expired') as any;
-      expiredError.name = 'TokenExpiredError';
       mockedJwt.verify = jest.fn().mockImplementation(() => {
-        throw expiredError;
+        const error = new Error('Token expired');
+        error.name = 'TokenExpiredError';
+        throw error;
       });
 
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
@@ -113,8 +132,7 @@ describe('AuthMiddleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Token expired',
-        code: 'TOKEN_EXPIRED'
+        message: 'Not authorized, token failed'
       });
       expect(mockNext).not.toHaveBeenCalled();
     });
@@ -152,19 +170,12 @@ describe('AuthMiddleware', () => {
         authorization: 'Bearer '
       };
 
-      const invalidError = new Error('Invalid token') as any;
-      invalidError.name = 'JsonWebTokenError';
-      mockedJwt.verify = jest.fn().mockImplementation(() => {
-        throw invalidError;
-      });
-
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Invalid token',
-        code: 'INVALID_TOKEN'
+        message: 'Not authorized, token failed'
       });
       expect(mockNext).not.toHaveBeenCalled();
     });
@@ -174,10 +185,8 @@ describe('AuthMiddleware', () => {
         authorization: 'Bearer malformed.token.here'
       };
 
-      const malformedError = new Error('JWT malformed') as any;
-      malformedError.name = 'JsonWebTokenError';
       mockedJwt.verify = jest.fn().mockImplementation(() => {
-        throw malformedError;
+        throw new jwt.JsonWebTokenError('JWT malformed');
       });
 
       await protect(mockRequest as Request, mockResponse as Response, mockNext);
@@ -185,17 +194,16 @@ describe('AuthMiddleware', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(401);
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
-        message: 'Invalid token',
-        code: 'INVALID_TOKEN'
+        message: 'Not authorized, token failed'
       });
     });
 
     describe('Token refresh logic', () => {
-      it('should not include automatic token refresh (handled via /auth/refresh endpoint)', async () => {
+      it('should calculate time until expiry correctly', async () => {
         const currentTime = Math.floor(Date.now() / 1000);
         const mockDecodedToken = {
           id: 'user123',
-          exp: currentTime + 600 // 10 minutes from now 
+          exp: currentTime + 600 // 10 minutes from now (less than 15 minutes)
         };
 
         mockRequest.headers = {
@@ -203,21 +211,19 @@ describe('AuthMiddleware', () => {
         };
 
         mockedJwt.verify = jest.fn().mockReturnValue(mockDecodedToken);
-        mockedJwt.sign = jest.fn();
+        mockedJwt.sign = jest.fn().mockReturnValue('refreshed-token');
 
         await protect(mockRequest as Request, mockResponse as Response, mockNext);
 
-        // Token refresh is no longer automatic - clients use /auth/refresh endpoint
-        expect(mockedJwt.sign).not.toHaveBeenCalled();
-        expect(mockResponse.setHeader).not.toHaveBeenCalledWith('X-New-Token', expect.any(String));
-        expect(mockNext).toHaveBeenCalledTimes(1);
+        expect(mockedJwt.sign).toHaveBeenCalled();
+        expect(mockResponse.setHeader).toHaveBeenCalledWith('X-New-Token', 'refreshed-token');
       });
 
-      it('should process valid tokens without refresh logic', async () => {
+      it('should not refresh token when more than 15 minutes remain', async () => {
         const currentTime = Math.floor(Date.now() / 1000);
         const mockDecodedToken = {
           id: 'user123',
-          exp: currentTime + 1200 // 20 minutes from now
+          exp: currentTime + 1200 // 20 minutes from now (more than 15 minutes)
         };
 
         mockRequest.headers = {
@@ -228,10 +234,8 @@ describe('AuthMiddleware', () => {
 
         await protect(mockRequest as Request, mockResponse as Response, mockNext);
 
-        // No automatic token refresh - tokens are refreshed via /auth/refresh endpoint
         expect(mockedJwt.sign).not.toHaveBeenCalled();
         expect(mockResponse.setHeader).not.toHaveBeenCalled();
-        expect(mockNext).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -346,7 +350,7 @@ describe('AuthMiddleware', () => {
 
       // Then, admin middleware
       MockedUser.findById = jest.fn().mockResolvedValue(mockAdminUser);
-      (mockNext as jest.MockedFunction<any>).mockClear(); // Clear previous call
+      mockNext.mockClear(); // Clear previous call
       
       await admin(mockRequest as Request, mockResponse as Response, mockNext);
 

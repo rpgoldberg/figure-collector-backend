@@ -68,21 +68,9 @@ npm run test:coverage
 - `GET /health` - Service health check
 
 **Business Logic APIs** (accessed via `/api` prefix through nginx)
-- `/figures` - Figure management endpoints (with `page` and `limit` query parameters only)
-- `/auth/*` - Authentication and session management endpoints
+- `/figures/*` - Figure management endpoints
+- `/users/*` - User authentication endpoints
 - `/figures/scrape-mfc` - MFC scraping proxy endpoint
-
-### Authentication Endpoints
-
-Authentication is managed through dedicated `/auth` endpoints:
-- `POST /auth/register` - Register a new user
-- `POST /auth/login` - Login and receive access/refresh tokens
-- `POST /auth/refresh` - Obtain a new access token using a refresh token
-- `POST /auth/logout` - Logout current session
-- `POST /auth/logout-all` - Logout from all active sessions
-- `GET /auth/sessions` - Retrieve all active sessions for the user
-
-**Note**: All authentication endpoints now return responses in the `data.data` structure
 
 Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't include `/api` in their paths.
 
@@ -91,9 +79,6 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 **Required:**
 - `MONGODB_URI`: MongoDB Atlas connection string
 - `JWT_SECRET`: Secret for JWT token signing
-- `JWT_REFRESH_SECRET`: Secret for refresh token signing
-- `JWT_ACCESS_TOKEN_EXPIRY`: Access token expiration time (default: 15m)
-- `JWT_REFRESH_TOKEN_EXPIRY`: Refresh token expiration time (default: 7d)
 - `SCRAPER_SERVICE_URL`: URL to page-scraper service (e.g., `http://page-scraper-dev:3010`)
 - `VERSION_MANAGER_URL`: URL to version-manager (e.g., `http://version-manager-dev:3011`)
 - `PORT`: Port for backend service (default: 5000)
@@ -102,31 +87,9 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 **No longer required:**
 - `FRONTEND_HOST`, `FRONTEND_PORT`: Removed due to self-registration architecture
 
-### Token Management
-
-The authentication system uses a two-token strategy:
-- **Access Token**: Short-lived token for API access (15 minutes expiry)
-- **Refresh Token**: Long-lived token (7 days expiry) stored securely in MongoDB
-
-Token Features:
-- Returns both `accessToken` and `refreshToken` on successful login
-- Session tracking allows users to manage and revoke active sessions
-- Automatic token refresh prevents unnecessary re-authentication
-- Enhanced security with device and location tracking for sessions
-
-Token Response Structure:
-```json
-{
-  "data": {
-    "accessToken": "...",
-    "refreshToken": "..."
-  }
-}
-```
-
 ## 🧪 Testing
 
-The backend includes extensive test infrastructure with enhanced Docker testing, comprehensive test suites, and robust automation scripts. We now have 309/309 tests passing, covering multiple dimensions of application functionality across multiple test configurations. The enhanced MongoDB Memory Server provides robust, isolated testing capabilities. All tests now pass without any skipped tests, focusing on essential database connection and API functionality.
+The backend includes extensive test infrastructure with enhanced Docker testing, comprehensive test suites, and robust automation scripts. We now have 288/288 tests passing, covering multiple dimensions of application functionality across multiple test configurations. The enhanced MongoDB Memory Server provides robust, isolated testing capabilities.
 
 ### Test Coverage
 
@@ -142,36 +105,19 @@ The backend includes extensive test infrastructure with enhanced Docker testing,
 ```
 tests/
 ├── unit/
-│   ├── models/           # User, Figure, and RefreshToken model tests
-│   ├── controllers/      # Authentication and business logic tests
+│   ├── models/           # User and Figure model tests
+│   ├── controllers/      # Business logic tests
 │   ├── middleware/       # Auth and validation middleware
 │   └── utils/           # Utility function tests
 ├── integration/
-│   ├── auth/             # Comprehensive authentication test suite
-│   │   ├── login.test.ts           # Login flow tests
-│   │   ├── registration.test.ts    # User registration tests
-│   │   ├── token-refresh.test.ts   # Token refresh tests
-│   │   ├── logout.test.ts          # Logout and session management tests
-│   │   └── sessions.test.ts        # Session tracking tests
+│   ├── auth.test.ts     # Authentication flow tests
 │   ├── figures.test.ts  # Figure CRUD operations
-│   ├── users.test.ts    # User profile management tests
+│   ├── users.test.ts    # User management tests
 │   └── version.test.ts  # Version management tests
 └── performance/
     ├── database.test.ts # Database performance tests
-    ├── auth-performance.test.ts # Authentication performance tests
     └── api.test.ts     # API response time tests
 ```
-
-### Authentication Test Coverage
-
-Enhanced authentication test suite now covers:
-- Multiple login scenarios (successful, failed)
-- Token generation and validation
-- Refresh token lifecycle
-- Session management
-- Logout mechanisms (single session and all sessions)
-- Device and location tracking
-- Token revocation and security edge cases
 
 ### Running Tests
 

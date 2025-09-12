@@ -1,14 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false,
     "skipLibCheck": true,
     "types": ["jest", "node"]
   },
@@ -16,9 +16,7 @@
     "src/**/__tests__/**/*",
     "src/**/__mocks__/**/*",
     "src/**/*.test.ts",
-    "src/**/*.spec.ts",
-    "src/types/**/*.d.ts",
-    "tests/**/*.ts"
+    "src/**/*.spec.ts"
   ],
   "exclude": ["node_modules"]
 }

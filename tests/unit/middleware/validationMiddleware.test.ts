@@ -180,7 +180,6 @@ describe('Validation Middleware', () => {
     let mockReq: Partial<Request>;
     let mockRes: Partial<Response>;
     let mockNext: jest.MockedFunction<NextFunction>;
-    let consoleSpy: jest.SpyInstance;
 
     beforeEach(() => {
       mockReq = {};
@@ -189,11 +188,6 @@ describe('Validation Middleware', () => {
         json: jest.fn()
       };
       mockNext = jest.fn();
-      consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-      consoleSpy.mockRestore();
     });
 
     it('should handle Mongoose CastError for invalid ObjectId', () => {

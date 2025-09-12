@@ -225,13 +225,13 @@ export const scrapeMFCData = async (req: Request, res: Response) => {
     const scrapedData = await scrapeDataFromMFC(mfcLink);
     console.log('[MFC ENDPOINT] Scraping completed, data:', scrapedData);
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: scrapedData
     });
   } catch (error: any) {
     console.error('[MFC ENDPOINT] Error in scrapeMFCData:', error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -242,12 +242,6 @@ export const scrapeMFCData = async (req: Request, res: Response) => {
 // Get all figures for the logged-in user with pagination
 export const getFigures = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     const validationErrors: string[] = [];
     
@@ -296,7 +290,7 @@ export const getFigures = async (req: Request, res: Response) => {
       .skip(skip)
       .limit(validLimit);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       count: figures.length,
       page: validPage,
@@ -307,7 +301,7 @@ export const getFigures = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Get Figures Error:', error);
     
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: 'An unexpected error occurred while fetching figures'
@@ -318,12 +312,6 @@ export const getFigures = async (req: Request, res: Response) => {
 // Get a single figure by ID
 export const getFigureById = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     const figure = await Figure.findOne({
       _id: req.params.id,
@@ -337,12 +325,12 @@ export const getFigureById = async (req: Request, res: Response) => {
       });
     }
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: figure
     });
   } catch (error: any) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -353,12 +341,6 @@ export const getFigureById = async (req: Request, res: Response) => {
 // Updated createFigure with enhanced scraping
 export const createFigure = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     const { manufacturer, name, scale, mfcLink, location, boxNumber, imageUrl } = req.body;
     
@@ -467,7 +449,7 @@ export const createFigure = async (req: Request, res: Response) => {
       userId
     });
     
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       data: figure
     });
@@ -485,7 +467,7 @@ export const createFigure = async (req: Request, res: Response) => {
     // Log server errors for debugging
     console.error('Create Figure Error:', error);
     
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: 'An unexpected error occurred during figure creation'
@@ -496,12 +478,6 @@ export const createFigure = async (req: Request, res: Response) => {
 // Update a figure
 export const updateFigure = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     const { manufacturer, name, scale, mfcLink, location, boxNumber, imageUrl } = req.body;
     
@@ -564,12 +540,12 @@ export const updateFigure = async (req: Request, res: Response) => {
       { new: true }
     );
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: figure
     });
   } catch (error: any) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -580,12 +556,6 @@ export const updateFigure = async (req: Request, res: Response) => {
 // Delete a figure
 export const deleteFigure = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     
     // Find figure and check ownership
@@ -604,12 +574,12 @@ export const deleteFigure = async (req: Request, res: Response) => {
     // Delete from MongoDB
     await Figure.deleteOne({ _id: req.params.id });
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: 'Figure removed successfully'
     });
   } catch (error: any) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -620,12 +590,6 @@ export const deleteFigure = async (req: Request, res: Response) => {
 // Search figures using MongoDB Atlas Search
 export const searchFigures = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     const { query } = req.query;
     
@@ -651,14 +615,8 @@ export const searchFigures = async (req: Request, res: Response) => {
     // Use different search logic based on environment
     let searchResults;
     
-    // Enhanced check: Use fallback for test environments OR when Atlas Search is unavailable
-    const useAtlasSearch = process.env.NODE_ENV === 'production' && 
-                          process.env.TEST_MODE !== 'memory' &&
-                          !process.env.INTEGRATION_TEST;
-    
-    if (!useAtlasSearch) {
+    if (process.env.NODE_ENV === 'test' || process.env.TEST_MODE === 'memory') {
       // Fallback search for test environment that simulates Atlas Search behavior
-      console.log('[SEARCH] Using fallback search (regex) for non-Atlas environment');
       const searchTerms = (query as string).split(' ').filter(term => term.trim().length > 0);
       
       // Create regex patterns for each search term
@@ -677,7 +635,6 @@ export const searchFigures = async (req: Request, res: Response) => {
       });
     } else {
       // MongoDB Atlas Search query for production
-      console.log('[SEARCH] Using Atlas Search for production environment');
       searchResults = await Figure.aggregate([
         {
           $search: {
@@ -735,13 +692,13 @@ export const searchFigures = async (req: Request, res: Response) => {
       userId: doc.userId
     }));
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       count: hits.length,
       data: hits
     });
   } catch (error: any) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -752,12 +709,6 @@ export const searchFigures = async (req: Request, res: Response) => {
 // Advanced filter figures
 export const filterFigures = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     const { manufacturer, scale, location, boxNumber } = req.query;
     
@@ -809,7 +760,7 @@ export const filterFigures = async (req: Request, res: Response) => {
       .skip(skip)
       .limit(validLimit);
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       count: figures.length,
       page: validPage,
@@ -818,7 +769,7 @@ export const filterFigures = async (req: Request, res: Response) => {
       data: figures
     });
   } catch (error: any) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message
@@ -829,12 +780,6 @@ export const filterFigures = async (req: Request, res: Response) => {
 // Get statistics
 export const getFigureStats = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not authenticated'
-      });
-    }
     const userId = req.user.id;
     let userObjectId: mongoose.Types.ObjectId;
     
@@ -872,7 +817,7 @@ export const getFigureStats = async (req: Request, res: Response) => {
       { $sort: { count: -1 } }
     ]);
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: {
         totalCount,
@@ -882,7 +827,7 @@ export const getFigureStats = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Server Error',
       error: error.message

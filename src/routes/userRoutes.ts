@@ -1,5 +1,7 @@
 import express from 'express';
 import { 
+  registerUser, 
+  loginUser, 
   getUserProfile, 
   updateUserProfile 
 } from '../controllers/userController';
@@ -12,7 +14,18 @@ import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// All user routes are protected
+router.post('/register', 
+  validateContentType(['application/json']),
+  validateRequest(schemas.userRegister), 
+  registerUser
+);
+router.post('/login', 
+  validateContentType(['application/json']),
+  validateRequest(schemas.userLogin), 
+  loginUser
+);
+
+// Protected routes
 router.use(protect);
 router.route('/profile')
   .get(getUserProfile)

@@ -1,11 +1,16 @@
 import { Request, Response } from 'express';
-import { getUserProfile, updateUserProfile } from '../../src/controllers/userController';
+import { registerUser, loginUser, getUserProfile, updateUserProfile } from '../../src/controllers/userController';
 import User from '../../src/models/User';
+import jwt from 'jsonwebtoken';
 import '../setup'; // Import test setup for environment variables
 
 // Mock User model
 jest.mock('../../src/models/User');
 const MockedUser = jest.mocked(User);
+
+// Mock JWT
+jest.mock('jsonwebtoken');
+const mockedJwt = jest.mocked(jwt);
 
 describe('UserController', () => {
   let mockRequest: Partial<Request>;
@@ -22,6 +27,204 @@ describe('UserController', () => {
     
     // Clear all mocks
     jest.clearAllMocks();
+  });
+
+  describe('registerUser', () => {
+    beforeEach(() => {
+      mockRequest.body = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123'
+      };
+    });
+
+    it('should register a new user successfully', async () => {
+      const mockUser = {
+        _id: 'user123',
+        username: 'testuser',
+        email: 'test@example.com',
+        isAdmin: false,
+        save: jest.fn()
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(null);
+      MockedUser.create = jest.fn().mockResolvedValue(mockUser);
+      mockedJwt.sign = jest.fn().mockReturnValue('fake-token');
+
+      await registerUser(mockRequest as Request, mockResponse as Response);
+
+      expect(MockedUser.findOne).toHaveBeenCalledWith({
+        $or: [{ email: 'test@example.com' }, { username: 'testuser' }]
+      });
+      expect(MockedUser.create).toHaveBeenCalledWith({
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123'
+      });
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        data: {
+          _id: 'user123',
+          username: 'testuser',
+          email: 'test@example.com',
+          isAdmin: false,
+          token: 'fake-token'
+        }
+      });
+    });
+
+    it('should return error if user already exists by email', async () => {
+      const existingUser = {
+        _id: 'existing123',
+        username: 'existinguser',
+        email: 'test@example.com'
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(existingUser);
+
+      await registerUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(409);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'User already exists'
+      });
+      expect(MockedUser.create).not.toHaveBeenCalled();
+    });
+
+    it('should return error if user already exists by username', async () => {
+      const existingUser = {
+        _id: 'existing123',
+        username: 'testuser',
+        email: 'different@example.com'
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(existingUser);
+
+      await registerUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(409);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'User already exists'
+      });
+    });
+
+    it('should handle server errors', async () => {
+      MockedUser.findOne = jest.fn().mockRejectedValue(new Error('Database error'));
+
+      await registerUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Server Error',
+        error: 'Database error'
+      });
+    });
+
+    it('should handle missing required fields', async () => {
+      mockRequest.body = {
+        username: 'testuser'
+        // Missing email and password
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(null);
+      MockedUser.create = jest.fn().mockRejectedValue(new Error('Validation failed'));
+
+      await registerUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Server Error',
+        error: 'Validation failed'
+      });
+    });
+  });
+
+  describe('loginUser', () => {
+    beforeEach(() => {
+      mockRequest.body = {
+        email: 'test@example.com',
+        password: 'password123'
+      };
+    });
+
+    it('should login user successfully', async () => {
+      const mockUser = {
+        _id: 'user123',
+        username: 'testuser',
+        email: 'test@example.com',
+        isAdmin: false,
+        comparePassword: jest.fn().mockResolvedValue(true)
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser);
+      mockedJwt.sign = jest.fn().mockReturnValue('fake-token');
+
+      await loginUser(mockRequest as Request, mockResponse as Response);
+
+      expect(MockedUser.findOne).toHaveBeenCalledWith({ email: 'test@example.com' });
+      expect(mockUser.comparePassword).toHaveBeenCalledWith('password123');
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        data: {
+          _id: 'user123',
+          username: 'testuser',
+          email: 'test@example.com',
+          isAdmin: false,
+          token: 'fake-token'
+        }
+      });
+    });
+
+    it('should return error for non-existent user', async () => {
+      MockedUser.findOne = jest.fn().mockResolvedValue(null);
+
+      await loginUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    });
+
+    it('should return error for incorrect password', async () => {
+      const mockUser = {
+        _id: 'user123',
+        username: 'testuser',
+        email: 'test@example.com',
+        comparePassword: jest.fn().mockResolvedValue(false)
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue(mockUser);
+
+      await loginUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockUser.comparePassword).toHaveBeenCalledWith('password123');
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    });
+
+    it('should handle server errors', async () => {
+      MockedUser.findOne = jest.fn().mockRejectedValue(new Error('Database error'));
+
+      await loginUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        message: 'Server Error',
+        error: 'Database error'
+      });
+    });
   });
 
   describe('getUserProfile', () => {
@@ -205,6 +408,36 @@ describe('UserController', () => {
         message: 'Server Error',
         error: 'Save failed'
       });
+    });
+  });
+
+  describe('Token Generation', () => {
+    it('should generate JWT token with correct payload', async () => {
+      const mockUser = {
+        _id: 'user123',
+        username: 'testuser',
+        email: 'test@example.com',
+        isAdmin: false
+      };
+
+      MockedUser.findOne = jest.fn().mockResolvedValue({
+        ...mockUser,
+        comparePassword: jest.fn().mockResolvedValue(true)
+      });
+      mockedJwt.sign = jest.fn().mockReturnValue('fake-token');
+
+      mockRequest.body = {
+        email: 'test@example.com',
+        password: 'password123'
+      };
+
+      await loginUser(mockRequest as Request, mockResponse as Response);
+
+      expect(mockedJwt.sign).toHaveBeenCalledWith(
+        { id: 'user123' },
+        'test-secret',
+        { expiresIn: '60m' }
+      );
     });
   });
 });
