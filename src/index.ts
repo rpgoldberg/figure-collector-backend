@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import figureRoutes from './routes/figureRoutes';
 import userRoutes from './routes/userRoutes';
+import authRoutes from './routes/authRoutes';
 import { connectDB } from './config/db';
 import { globalErrorHandler } from './middleware/validationMiddleware';
 import * as packageJson from '../package.json';
@@ -13,7 +14,7 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 export { app };
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 
 // Middleware
 app.use(cors());
@@ -33,6 +34,7 @@ let serviceVersions = {
 };
 
 // Routes
+app.use('/auth', authRoutes);
 app.use('/figures', figureRoutes);
 app.use('/users', userRoutes);
 

@@ -167,12 +167,12 @@ describe('Route Validation and Error Handling', () => {
       });
     });
 
-    describe('POST /users/register', () => {
+    describe('POST /auth/register', () => {
       it('should handle missing required fields gracefully', async () => {
         const incompleteData = {};
 
         const response = await request(app)
-          .post('/users/register')
+          .post('/auth/register')
           .send(incompleteData)
           .expect(422);
 
@@ -188,7 +188,7 @@ describe('Route Validation and Error Handling', () => {
         };
 
         const response = await request(app)
-          .post('/users/register')
+          .post('/auth/register')
           .send(userData)
           .expect(422);
 
@@ -214,7 +214,7 @@ describe('Route Validation and Error Handling', () => {
           };
 
           const response = await request(app)
-            .post('/users/register')
+            .post('/auth/register')
             .send(userData);
 
           // Should reject invalid email format with validation error
@@ -236,7 +236,7 @@ describe('Route Validation and Error Handling', () => {
         };
 
         const response = await request(app)
-          .post('/users/register')
+          .post('/auth/register')
           .send(sqlInjectionData);
 
         // Should handle this gracefully (MongoDB isn't SQL so this should just be treated as strings)
@@ -503,7 +503,7 @@ describe('Route Validation and Error Handling', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.message).toBe('Not authorized, token failed');
+      expect(response.body.message).toBe('Invalid token');
     });
   });
 
@@ -533,7 +533,7 @@ describe('Route Validation and Error Handling', () => {
     it('should return consistent error format across endpoints', async () => {
       const endpoints = [
         { method: 'GET', path: '/figures/invalid-id', expectedStatuses: [422, 500] },
-        { method: 'POST', path: '/users/register', expectedStatuses: [422, 500], body: {} },
+        { method: 'POST', path: '/auth/register', expectedStatuses: [422, 500], body: {} },
         { method: 'GET', path: '/figures/search', expectedStatuses: [400, 422] },
         { method: 'PUT', path: '/figures/invalid-id', expectedStatuses: [422, 500], body: {} }
       ];

@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 
 // Mock environment variables for tests
-process.env.JWT_SECRET = 'test-secret';
+process.env.JWT_SECRET = 'test-secret-that-is-at-least-32-characters-long';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-that-is-at-least-32-characters';
 process.env.NODE_ENV = 'test';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/figure-collector-test';
 

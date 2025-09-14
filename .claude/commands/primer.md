@@ -1,82 +1,66 @@
-## Figure Collector Backend Primer Command
+## Backend Service Primer
 
-**IMPORTANT**: This is the figure-collector-backend service - a Node.js/Express/TypeScript API service with MongoDB Atlas integration for the Figure Collector application.
+**Initialize as BACKEND SERVICE ORCHESTRATOR.**
 
-### Step 1: Service Configuration
-1. Read `CLAUDE.md` for service-specific configuration and agent instructions
-2. Understand this service's role as the primary API layer for the Figure Collector application
+### Quick Service Scan
+```bash
+# Health check
+test -f src/index.ts && echo "✓ API structure"
+test -f package.json && echo "✓ Dependencies"
+test -d src/controllers && echo "✓ Controllers"
+test -d src/models && echo "✓ Models"
+```
 
-### Step 2: Service Structure Analysis
+### Architecture Load
+- **Port**: 5000
+- **Stack**: Express/TypeScript
+- **Database**: MongoDB Atlas
+- **Auth**: JWT tokens
+- **Search**: Atlas $search
 
-**Core API Structure**:
-- Read `src/index.ts` for Express server setup and middleware configuration
-- Read `src/routes/` to understand API endpoint organization (figures, users)
-- Read `src/controllers/` for business logic and request handling
-- Read `src/models/` for MongoDB/Mongoose schemas and data models
-- Read `src/middleware/` for authentication, validation, and error handling
+### Component Map
+```
+src/
+├── controllers/   # Request logic
+├── models/        # Mongoose schemas
+├── routes/        # API endpoints
+├── middleware/    # Auth/validation
+└── config/        # DB connection
+```
 
-**Database Integration**:
-- Review `src/config/db.ts` for MongoDB Atlas connection setup
-- Understand Atlas Search integration for figure search functionality
-- Check database models and relationships
+### Your Agents (Sonnet)
+- backend-api-builder → API endpoints
+- backend-data-architect → MongoDB schemas
+- backend-auth-guardian → JWT security
+- backend-test-engineer → Jest testing
 
-**Testing Structure**:
-- Examine `tests/` directory for current test coverage patterns
-- Review Jest configuration in `jest.config.js`
-- Check TypeScript test configuration in `tsconfig.test.json`
+### API Endpoints
+- `/auth/*` → Authentication
+- `/figures/*` → CRUD operations
+- `/users/*` → User management
+- `/health` → Service status
 
-**Build and Development**:
-- Review `package.json` for dependencies and npm scripts
-- Check TypeScript configuration in `tsconfig.json`
-- Review Docker configuration in `Dockerfile` and `Dockerfile.test`
+### Test Commands
+```bash
+npm test              # All tests
+npm run test:unit     # Unit only
+npm run test:memory   # In-memory DB
+npm run coverage      # Coverage report
+```
 
-### Step 3: Service Understanding
+### Integration Points
+- Frontend → REST API
+- MongoDB Atlas → Data persistence
+- Version Manager → Service registration
 
-**API Endpoints**:
-- Figure management: CRUD operations, search, filtering
-- User management: Registration, authentication, profile management
-- Authentication: JWT token-based authentication system
-- Search functionality: MongoDB Atlas Search integration
+### Status Protocol
+Report to master orchestrator:
+```
+SERVICE: backend
+TASK: [current]
+STATUS: [state]
+TESTS: [pass/total]
+REGRESSION: [zero|detected]
+```
 
-**Key Dependencies**:
-- Express.js for web framework
-- TypeScript for type safety
-- MongoDB/Mongoose for database operations
-- Jest/Supertest for testing
-- JWT for authentication
-
-**Integration Points**:
-- MongoDB Atlas for data persistence and search
-- Authentication token validation
-- Cross-service communication patterns
-- Error handling and logging
-
-### Step 4: Available Tools and Agents
-
-**Available Sub-Agents**:
-- `test-generator-backend` (Haiku) - Jest + Supertest + MongoDB Memory Server test generation
-- `documentation-manager` (Haiku) - Documentation synchronization
-- `validation-gates` - Testing and validation specialist
-
-**Development Commands**:
-- `npm run dev` - Development server with hot reload
-- `npm run build` - TypeScript compilation
-- `npm run test` - Jest test execution
-- `npm run test:coverage` - Test coverage reporting
-- `npm run lint` - ESLint code linting
-- `npm run typecheck` - TypeScript type checking
-
-### Step 5: Summary Report
-
-After analysis, provide:
-- **Service Purpose**: Primary API layer for Figure Collector application
-- **Technology Stack**: Node.js, Express, TypeScript, MongoDB Atlas, JWT
-- **Key Functionality**: Figure/user CRUD, search, authentication, data validation
-- **API Surface**: All REST endpoints and their responsibilities
-- **Database Schema**: MongoDB collections and relationships
-- **Authentication Flow**: JWT token-based auth system
-- **Test Coverage**: Current testing approach and coverage levels
-- **Atlas Search**: MongoDB Atlas Search integration for figure search
-- **Development Workflow**: Setup, testing, and deployment processes
-
-**Remember**: This service handles sensitive user data and authentication - security and data validation are critical considerations for all changes.
+**Ready. Zero regression mandate active.**
