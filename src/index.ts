@@ -35,6 +35,61 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Frontend registration proxy endpoint (Frontend can't hold SERVICE_AUTH_TOKEN)
+// This is specifically for frontend only, as it runs in the browser
+app.post('/register-frontend', async (req, res) => {
+  try {
+    const { version, name } = req.body;
+
+    if (!version) {
+      return res.status(400).json({ error: 'Version is required' });
+    }
+
+    const serviceAuthToken = process.env.SERVICE_AUTH_TOKEN;
+    if (!serviceAuthToken) {
+      return res.status(503).json({ error: 'Service registration is not configured' });
+    }
+
+    const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
+
+    const registrationData = {
+      serviceId: 'frontend',
+      name: name || 'Figure Collector Frontend',
+      version: version,
+      endpoints: {
+        root: 'http://frontend:80',
+        static: 'http://frontend:80/static'
+      },
+      dependencies: {
+        backend: '^2.0.0',
+        versionManager: '^1.1.0'
+      }
+    };
+
+    const response = await fetch(`${versionManagerUrl}/services/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${serviceAuthToken}`
+      },
+      body: JSON.stringify(registrationData)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(`[BACKEND] Successfully registered frontend v${version} with version manager`);
+      res.json({ success: true, message: 'Frontend registered successfully', service: result.service });
+    } else {
+      const error = await response.text();
+      console.error(`[BACKEND] Failed to register frontend: ${response.status} - ${error}`);
+      res.status(response.status).json({ error: 'Failed to register frontend' });
+    }
+  } catch (error: any) {
+    console.error('[BACKEND] Error registering frontend:', error.message);
+    res.status(500).json({ error: 'Failed to register frontend with version manager' });
+  }
+});
+
 
 // Version endpoint - queries Version-Manager for registered services (source of truth)
 app.get('/version', async (req, res) => {
