@@ -53,3 +53,19 @@ Thumbs.db
 # Exclude only personal Claude preferences
 .claude/personal/
 .claude/user-*/
+
+# Claude-specific files
+.claude/
+CLAUDE.md
+*claude-backup*
+
+# Test outputs and reports  
+test-results.json
+test-validation-output.log
+*_TESTING_REPORT.md
+*_TEST_RESULTS.md
+
+# Backup files
+*.backup
+*.bak
+*~

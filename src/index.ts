@@ -8,6 +8,10 @@ import authRoutes from './routes/authRoutes';
 import { connectDB } from './config/db';
 import { globalErrorHandler } from './middleware/validationMiddleware';
 import * as packageJson from '../package.json';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('MAIN');
+const registerLogger = createLogger('REGISTER');
 
 dotenv.config();
 
@@ -77,11 +81,11 @@ app.post('/register-frontend', async (req, res) => {
 
     if (response.ok) {
       const result = await response.json();
-      console.log(`[BACKEND] Successfully registered frontend v${version} with version manager`);
+      registerLogger.info(`Successfully registered frontend v${version} with version manager`);
       res.json({ success: true, message: 'Frontend registered successfully', service: result.service });
     } else {
       const error = await response.text();
-      console.error(`[BACKEND] Failed to register frontend: ${response.status} - ${error}`);
+      registerLogger.error(`Failed to register frontend: ${response.status} - ${error}`);
       res.status(response.status).json({ error: 'Failed to register frontend' });
     }
   } catch (error: any) {
