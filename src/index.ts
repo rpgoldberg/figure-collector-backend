@@ -24,14 +24,6 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Connect to MongoDB
 connectDB();
 
-// In-memory storage for service versions (could be moved to database if persistence needed)
-let serviceVersions = {
-  frontend: {
-    name: "figure-collector-frontend",
-    version: "unknown",
-    status: "not-registered"
-  }
-};
 
 // Routes
 app.use('/auth', authRoutes);
@@ -43,131 +35,119 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Frontend service registration endpoint
-app.post('/register-service', (req, res) => {
-  try {
-    const { serviceName, version, name } = req.body;
-    
-    if (!serviceName || version === undefined || version === null) {
-      return res.status(400).json({ error: 'serviceName and version are required' });
-    }
-    
-    if (serviceName === 'frontend') {
-      serviceVersions.frontend = {
-        name: name || "figure-collector-frontend",
-        version: version,
-        status: "ok"
-      };
-      console.log(`[REGISTER] Frontend registered: v${version}`);
-      res.json({ success: true, message: 'Service registered successfully' });
-    } else {
-      res.status(400).json({ error: 'Only frontend service registration is currently supported' });
-    }
-  } catch (error: any) {
-    console.error('[REGISTER] Error registering service:', error.message);
-    res.status(500).json({ error: 'Failed to register service' });
-  }
-});
 
-// Version endpoint
+// Version endpoint - queries Version-Manager for registered services (source of truth)
 app.get('/version', async (req, res) => {
   try {
-    // Fetch app info from version manager service
+    const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
+
+    // Step 1: Get application info
     let appInfo = {
       name: "figure-collector-services",
       version: "unknown",
       releaseDate: "unknown"
     };
-    
+
     try {
-      const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
-      console.log(`[VERSION] Attempting to fetch app version from: ${versionManagerUrl}/app-version`);
-      
-      const appVersionResponse = await fetch(`${versionManagerUrl}/app-version`);
-      console.log(`[VERSION] Version service response status: ${appVersionResponse.status}`);
-      
-      if (appVersionResponse.ok) {
-        const appVersionData = await appVersionResponse.json();
-        console.log(`[VERSION] Version service data:`, appVersionData);
+      const appResponse = await fetch(`${versionManagerUrl}/app-version`);
+      if (appResponse.ok) {
+        const appData = await appResponse.json();
         appInfo = {
-          name: appVersionData.name || "figure-collector-services",
-          version: appVersionData.version || "unknown",
-          releaseDate: appVersionData.releaseDate || "unknown"
+          name: appData.name || "figure-collector-services",
+          version: appData.version || "unknown",
+          releaseDate: appData.releaseDate || "unknown"
         };
-      } else {
-        console.warn(`[VERSION] Version service returned non-OK status: ${appVersionResponse.status}`);
       }
     } catch (error: any) {
-      console.warn(`[VERSION] Could not fetch app version from ${process.env.VERSION_MANAGER_URL || 'http://version-manager:3001'}: ${error.message}`);
+      console.warn('[VERSION] Could not fetch app version:', error.message);
     }
 
+    // Step 2: Get all registered services from Version-Manager (source of truth)
+    let registeredServices: any = {};
+    try {
+      const servicesResponse = await fetch(`${versionManagerUrl}/services`);
+      if (servicesResponse.ok) {
+        const servicesData = await servicesResponse.json();
+        // Convert array to object keyed by serviceId
+        if (servicesData.services && Array.isArray(servicesData.services)) {
+          servicesData.services.forEach((service: any) => {
+            registeredServices[service.serviceId] = {
+              name: service.name,
+              version: service.version,
+              status: service.status || 'registered',
+              lastSeen: service.lastRegistered
+            };
+          });
+        }
+      }
+    } catch (error: any) {
+      console.warn('[VERSION] Could not fetch registered services:', error.message);
+    }
+
+    // Step 3: Build response with registered versions (source of truth)
     const versionInfo: any = {
       application: appInfo,
       services: {
-        backend: {
+        backend: registeredServices['backend'] || {
           name: "figure-collector-backend",
-          version: packageJson.version,
-          status: "ok"
+          version: packageJson.version, // Fallback to our own version if not registered
+          status: "not-registered"
         },
-        frontend: serviceVersions.frontend,
-        scraper: {
+        frontend: registeredServices['frontend'] || {
+          name: "figure-collector-frontend",
+          version: "unknown",
+          status: "not-registered"
+        },
+        scraper: registeredServices['page-scraper'] || registeredServices['scraper'] || {
           name: "page-scraper",
           version: "unknown",
-          status: "not-checked"
+          status: "not-registered"
+        },
+        versionManager: registeredServices['version-manager'] || {
+          name: "figure-collector-version-manager",
+          version: "unknown",
+          status: "not-registered"
         }
       }
     };
 
-    // Try to fetch scraper version
-    try {
-      const scraperUrl = process.env.SCRAPER_SERVICE_URL || 'http://page-scraper:3000';
-      const scraperResponse = await fetch(`${scraperUrl}/version`);
-      
-      if (scraperResponse.ok) {
-        const scraperVersion = await scraperResponse.json();
-        versionInfo.services.scraper = {
-          name: "page-scraper",
-          version: scraperVersion.version || "unknown",
-          status: "ok"
-        };
-      } else {
-        versionInfo.services.scraper = {
-          name: "page-scraper", 
-          version: "unknown",
-          status: "unreachable"
-        };
-      }
-    } catch (error: any) {
-      versionInfo.services.scraper = {
-        name: "page-scraper",
-        version: "unknown", 
-        status: "error"
-      };
-    }
+    // Step 4: Validate the combination of registered versions
+    const backend = versionInfo.services.backend?.version;
+    const frontend = versionInfo.services.frontend?.version;
+    const scraper = versionInfo.services.scraper?.version;
 
-    // Try to validate version combination
-    try {
-      const backend = versionInfo.services.backend?.version;
-      const frontend = versionInfo.services.frontend?.version; 
-      const scraper = versionInfo.services.scraper?.version;
-      
-      if (backend && frontend && scraper && 
-          backend !== 'unknown' && frontend !== 'unknown' && scraper !== 'unknown') {
-        
-        const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
-        const validationResponse = await fetch(`${versionManagerUrl}/validate-versions?backend=${backend}&frontend=${frontend}&scraper=${scraper}`);
-        
+    if (backend !== 'unknown' && frontend !== 'unknown' && scraper !== 'unknown') {
+      try {
+        const validationUrl = `${versionManagerUrl}/validate-versions?backend=${backend}&frontend=${frontend}&scraper=${scraper}`;
+        const validationResponse = await fetch(validationUrl);
+
         if (validationResponse.ok) {
           const validationData = await validationResponse.json();
-          versionInfo.validation = validationData;
+          versionInfo.compatibility = {
+            status: validationData.status, // 'tested', 'compatible', 'warning', 'invalid'
+            valid: validationData.valid,
+            message: validationData.message,
+            verified: validationData.verified
+          };
         }
+      } catch (error: any) {
+        console.warn('[VERSION] Could not validate version combination:', error.message);
       }
-    } catch (error: any) {
-      console.warn('[VERSION] Could not validate version combination:', error.message);
+    } else {
+      // If services aren't registered, mark as invalid
+      versionInfo.compatibility = {
+        status: 'invalid',
+        valid: false,
+        message: 'Not all services have registered their versions',
+        missingRegistrations: Object.entries(versionInfo.services)
+          .filter(([_, service]: [string, any]) => service.version === 'unknown')
+          .map(([name]) => name)
+      };
     }
 
     res.json(versionInfo);
   } catch (error: any) {
+    console.error('[VERSION] Error in version endpoint:', error);
     res.status(500).json({ error: 'Failed to fetch version information' });
   }
 });
@@ -180,7 +160,53 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
+// Function to register with Version Manager
+const registerWithVersionManager = async () => {
+  const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
+
+  const registrationData = {
+    serviceId: 'backend',
+    name: 'Figure Collector Backend',
+    version: packageJson.version,
+    endpoints: {
+      health: `http://backend:${PORT}/health`,
+      version: `http://backend:${PORT}/version`,
+      api: `http://backend:${PORT}`
+    },
+    dependencies: {
+      database: 'mongodb',
+      scraper: 'page-scraper'
+    }
+  };
+
+  try {
+    const response = await fetch(`${versionManagerUrl}/services/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(registrationData)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(`[BACKEND] Successfully registered with version manager:`, result.service);
+    } else {
+      const error = await response.text();
+      console.warn(`[BACKEND] Failed to register with version manager: ${response.status} - ${error}`);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn(`[BACKEND] Version manager registration failed:`, errorMessage);
+    console.warn(`[BACKEND] Service will continue without version manager registration`);
+  }
+};
+
 // Start the server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Register with version manager after server starts
+  console.log('[BACKEND] Attempting to register with version manager...');
+  await registerWithVersionManager();
 });
