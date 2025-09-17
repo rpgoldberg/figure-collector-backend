@@ -127,14 +127,14 @@ app.get('/version', async (req, res) => {
       const servicesResponse = await fetch(`${versionManagerUrl}/services`);
       if (servicesResponse.ok) {
         const servicesData = await servicesResponse.json();
-        // Convert array to object keyed by serviceId
+        // Convert array to object keyed by service id
         if (servicesData.services && Array.isArray(servicesData.services)) {
           servicesData.services.forEach((service: any) => {
-            registeredServices[service.serviceId] = {
+            registeredServices[service.id] = {
               name: service.name,
               version: service.version,
               status: service.status || 'registered',
-              lastSeen: service.lastRegistered
+              lastSeen: service.registeredAt || service.lastUpdated
             };
           });
         }
