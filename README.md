@@ -63,8 +63,8 @@ npm run test:coverage
 ## API Endpoints
 
 **Infrastructure Endpoints** (accessed directly via nginx proxy)
-- `POST /register-service` - Service registration (used by frontend)
-- `GET /version` - Aggregated version info with validation
+- `POST /register-frontend` - Frontend registration proxy (forwards to Version Manager with auth)
+- `GET /version` - Aggregated version info from Version Manager
 - `GET /health` - Service health check
 
 **Business Logic APIs** (accessed via `/api` prefix through nginx)
@@ -102,6 +102,14 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 - `ROTATE_REFRESH_TOKENS`: Enable refresh token rotation for enhanced security (default: false)
 
 **Security Note:** Generate secure secrets using: `openssl rand -base64 32`
+
+**Service Registration:**
+- `VERSION_MANAGER_URL`: URL of Version Manager service (default: http://version-manager:3001)
+- `SERVICE_AUTH_TOKEN`: Authentication token for service registration (required for production)
+
+**Debug Logging:**
+- `DEBUG`: Enable debug namespaces (e.g., `backend:*`, `backend:auth`, `backend:registration`)
+- `SERVICE_AUTH_TOKEN_DEBUG`: Show partial tokens in logs for debugging (default: false)
 
 **No longer required:**
 - `FRONTEND_HOST`, `FRONTEND_PORT`: Removed due to self-registration architecture
