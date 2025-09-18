@@ -29,6 +29,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: Checkout code
@@ -78,83 +81,21 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # Generate SBOM for the container image
-      - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0
+  # Call the reusable security scanning workflow
+  security-scan:
+    needs: build-and-push
+    uses: ./.github/workflows/sbom-security-scan.yml
+    with:
+      image-tags: ${{ needs.build-and-push.outputs.tags }}
+      image-digest: ${{ needs.build-and-push.outputs.digest }}
+      registry: ghcr.io
+      image-name: ghcr.io/${{ github.repository }}
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+      id-token: write
 
-      - name: Generate container SBOM
-        run: |
-          # Get the first tag from the list for SBOM generation
-          FIRST_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
-          echo "Generating SBOM for image: ${FIRST_TAG}"
-
-          # Generate SBOM in both SPDX and CycloneDX formats
-          syft "${FIRST_TAG}" -o spdx-json > sbom-spdx.json
-          syft "${FIRST_TAG}" -o cyclonedx-json > sbom-cyclonedx.json
-
-          # Also generate a human-readable format
-          syft "${FIRST_TAG}" -o table > sbom-table.txt
-
-          echo "SBOM generated successfully"
-          echo "Container packages found: $(syft "${FIRST_TAG}" -q | wc -l)"
-
-      # Attach SBOM to the container image as attestation
-      - name: Attach SBOM attestation
-        uses: actions/attest-sbom@v1
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.build.outputs.digest }}
-          sbom-path: sbom-spdx.json
-          push-to-registry: true
-
-      # Upload SBOMs as artifacts for later retrieval
-      - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-${{ github.run_id }}
-          path: |
-            sbom-*.json
-            sbom-*.txt
-          retention-days: 90
-
-      # Scan for vulnerabilities using Grype
-      - name: Scan image for vulnerabilities
-        run: |
-          # Install Grype
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-
-          # Scan using the SBOM
-          echo "🔍 Scanning for vulnerabilities..."
-          grype sbom:sbom-spdx.json -o table > vulnerability-report.txt || true
-
-          # Also create a JSON report for parsing
-          grype sbom:sbom-spdx.json -o json > vulnerability-report.json || true
-
-          # Display summary
-          echo "Vulnerability scan complete"
-          if [ -s vulnerability-report.txt ]; then
-            head -100 vulnerability-report.txt
-          fi
-
-      - name: Upload vulnerability reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: vulnerability-report-${{ github.run_id }}
-          path: |
-            vulnerability-*.txt
-            vulnerability-*.json
-          retention-days: 90
-
-      # Optional: Submit SBOM to dependency track or other vulnerability management system
-      - name: Display SBOM summary
-        run: |
-          echo "📦 SBOM Generation Complete"
-          echo "================================"
-          echo "Image: ${{ steps.meta.outputs.tags }}"
-          echo "Digest: ${{ steps.build.outputs.digest }}"
-          echo "SBOM Formats: SPDX, CycloneDX"
-          echo "Attestation: Attached to image"
-          echo "================================"
-          echo "Package Summary:"
-          head -30 sbom-table.txt
