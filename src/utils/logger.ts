@@ -20,9 +20,9 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 class Logger {
-  private module: string;
-  private enabled: boolean;
-  private level: number;
+  private readonly module: string;
+  private readonly enabled: boolean;
+  private readonly level: number;
 
   constructor(module: string) {
     this.module = module;
