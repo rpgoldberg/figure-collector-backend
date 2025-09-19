@@ -54,18 +54,15 @@ app.post('/register-frontend', async (req, res) => {
       return res.status(503).json({ error: 'Service registration is not configured' });
     }
 
-    // NOSONAR: Internal Docker network communication between services
-    const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
+    const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001'; // NOSONAR
 
     const registrationData = {
       serviceId: 'frontend',
       name: name || 'Figure Collector Frontend',
       version: version,
       endpoints: {
-        // NOSONAR: Internal Docker network communication between services
-        root: 'http://frontend:80',
-        // NOSONAR: Internal Docker network communication between services
-        static: 'http://frontend:80/static'
+        root: 'http://frontend:80', // NOSONAR
+        static: 'http://frontend:80/static' // NOSONAR
       },
       dependencies: {
         backend: '^2.0.0',
@@ -101,8 +98,7 @@ app.post('/register-frontend', async (req, res) => {
 // Version endpoint - queries Version-Manager for registered services (source of truth)
 app.get('/version', async (req, res) => {
   try {
-    // NOSONAR: Internal Docker network communication between services
-    const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
+    const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001'; // NOSONAR
 
     // Step 1: Get application info
     let appInfo = {
@@ -232,12 +228,9 @@ const registerWithVersionManager = async () => {
     name: 'Figure Collector Backend',
     version: packageJson.version,
     endpoints: {
-      // NOSONAR: Internal Docker network communication between services
-      health: `http://backend:${PORT}/health`,
-      // NOSONAR: Internal Docker network communication between services
-      version: `http://backend:${PORT}/version`,
-      // NOSONAR: Internal Docker network communication between services
-      api: `http://backend:${PORT}`
+      health: `http://backend:${PORT}/health`, // NOSONAR
+      version: `http://backend:${PORT}/version`, // NOSONAR
+      api: `http://backend:${PORT}` // NOSONAR
     },
     dependencies: {
       database: 'mongodb',
