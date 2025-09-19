@@ -89,9 +89,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Call the reusable security scanning workflow
+  # Call the reusable security scanning workflow (only on non-PR events when image is pushed)
   security-scan:
     needs: build-and-push
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/sbom-security-scan.yml
     with:
       image-tags: ${{ needs.build-and-push.outputs.tags }}
