@@ -32,8 +32,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      contents: read
-      packages: write
     outputs:
       tags: ${{ steps.meta.outputs.tags }}
       digest: ${{ steps.build.outputs.digest }}
