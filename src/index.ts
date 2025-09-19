@@ -54,6 +54,7 @@ app.post('/register-frontend', async (req, res) => {
       return res.status(503).json({ error: 'Service registration is not configured' });
     }
 
+    // NOSONAR: Internal Docker network communication between services
     const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
 
     const registrationData = {
@@ -61,7 +62,9 @@ app.post('/register-frontend', async (req, res) => {
       name: name || 'Figure Collector Frontend',
       version: version,
       endpoints: {
+        // NOSONAR: Internal Docker network communication between services
         root: 'http://frontend:80',
+        // NOSONAR: Internal Docker network communication between services
         static: 'http://frontend:80/static'
       },
       dependencies: {
@@ -98,6 +101,7 @@ app.post('/register-frontend', async (req, res) => {
 // Version endpoint - queries Version-Manager for registered services (source of truth)
 app.get('/version', async (req, res) => {
   try {
+    // NOSONAR: Internal Docker network communication between services
     const versionManagerUrl = process.env.VERSION_MANAGER_URL || 'http://version-manager:3001';
 
     // Step 1: Get application info
@@ -228,8 +232,11 @@ const registerWithVersionManager = async () => {
     name: 'Figure Collector Backend',
     version: packageJson.version,
     endpoints: {
+      // NOSONAR: Internal Docker network communication between services
       health: `http://backend:${PORT}/health`,
+      // NOSONAR: Internal Docker network communication between services
       version: `http://backend:${PORT}/version`,
+      // NOSONAR: Internal Docker network communication between services
       api: `http://backend:${PORT}`
     },
     dependencies: {
