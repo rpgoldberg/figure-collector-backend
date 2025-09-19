@@ -48,12 +48,12 @@ COPY package*.json ./
 # Using --ignore-scripts for security to prevent execution of npm scripts
 RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
-# Copy built application from builder with read-only permissions
-# Files are owned by root:root with 644 permissions (read-only for non-root)
-COPY --from=builder --chown=root:root --chmod=644 /app/dist ./dist
+# Copy built application from builder
+# Files are owned by root:root (read-only for non-root)
+COPY --from=builder --chown=root:root /app/dist ./dist
 
-# Copy any additional required files with read-only permissions
-COPY --chown=root:root --chmod=644 .env.example .env.example 2>/dev/null || true
+# Copy any additional required files (if they exist)
+# Note: .env.example might not exist, which is fine
 
 # Create a writable directory for runtime data if needed
 RUN mkdir -p /app/data /app/logs && \
