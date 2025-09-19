@@ -15,30 +15,9 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Download and install patched Chrome for Testing (140.0.7339.185)
-# Backend has Puppeteer as a dependency which would download vulnerable Chrome
-RUN apt-get update && apt-get install -y wget unzip \
-    && wget -q https://storage.googleapis.com/chrome-for-testing-public/140.0.7339.185/linux64/chrome-linux64.zip \
-    && unzip chrome-linux64.zip \
-    && mv chrome-linux64 /opt/chrome \
-    && rm chrome-linux64.zip \
-    && chmod +x /opt/chrome/chrome \
-    && apt-get remove -y wget unzip \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set Chrome path for Puppeteer and skip download
-ENV PUPPETEER_EXECUTABLE_PATH=/opt/chrome/chrome
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-
 COPY package*.json ./
 
 RUN npm install --no-audit --no-fund
-
-# Remove any Chrome that might have been downloaded by Puppeteer
-RUN rm -rf /root/.cache/puppeteer \
-    && rm -rf node_modules/puppeteer/.local-chromium \
-    && rm -rf node_modules/puppeteer-core/.local-chromium
 
 COPY . .
 
