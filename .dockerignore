@@ -1,5 +1,35 @@
 node_modules
 npm-debug.log
-dist
+# dist - excluded since we build inside the container
 .git
 .env
+.env.local
+.env.*.local
+coverage
+.nyc_output
+.DS_Store
+*.log
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.github
+.gitignore
+README.md
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+# Test files - commented out for Dockerfile.test which needs them
+# Uncomment these lines for production Docker builds
+# tests
+# test
+# __tests__
+# *.test.js
+# *.test.ts
+# *.spec.js
+# *.spec.ts
+# tsconfig.test.json
+.eslintrc*
+.prettierrc*
+# jest.config* - needed for running tests in Docker

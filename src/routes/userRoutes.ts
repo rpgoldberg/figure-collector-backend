@@ -1,21 +1,25 @@
 import express from 'express';
 import { 
-  registerUser, 
-  loginUser, 
   getUserProfile, 
   updateUserProfile 
 } from '../controllers/userController';
+import { 
+  validateRequest, 
+  schemas, 
+  validateContentType 
+} from '../middleware/validationMiddleware';
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-
-// Protected routes
+// All user routes are protected
 router.use(protect);
 router.route('/profile')
   .get(getUserProfile)
-  .put(updateUserProfile);
+  .put(
+    validateContentType(['application/json']),
+    validateRequest(schemas.userUpdate), 
+    updateUserProfile
+  );
 
 export default router;
