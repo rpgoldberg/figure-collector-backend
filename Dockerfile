@@ -8,8 +8,12 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Update repositories and upgrade OpenSSL for latest security patches (fixes CVE-2025-9230)
+# Upgrade npm to latest version to fix cross-spawn 7.0.3 vulnerability (GHSA-3xgq-45jj-v275)
+RUN apk update && \
+    apk upgrade --no-cache libssl3 libcrypto3 && \
+    apk add --no-cache dumb-init && \
+    npm install -g npm@latest
 
 # Copy package files
 COPY package*.json ./
@@ -76,6 +80,12 @@ LABEL org.opencontainers.image.description="Backend API service for Figure Colle
 LABEL org.opencontainers.image.vendor="Figure Collector Services"
 LABEL org.opencontainers.image.source="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
 
+# Update repositories and upgrade OpenSSL for latest security patches (fixes CVE-2025-9230)
+# Upgrade npm to latest version to fix cross-spawn 7.0.3 vulnerability (GHSA-3xgq-45jj-v275)
+RUN apk update && \
+    apk upgrade --no-cache libssl3 libcrypto3 && \
+    npm install -g npm@latest
+
 # Install dumb-init and create non-root user in a single layer
 RUN apk add --no-cache dumb-init && \
     addgroup -g 1001 -S nodejs && \
@@ -88,7 +98,8 @@ COPY package*.json ./
 
 # Install production dependencies only
 # Using --ignore-scripts for security to prevent execution of npm scripts
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && \
+    npm cache clean --force
 
 # Copy built application from builder
 # Files are owned by root:root (read-only for non-root)
