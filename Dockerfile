@@ -8,8 +8,10 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Update repositories and upgrade OpenSSL for latest security patches (fixes CVE-2025-9230)
+RUN apk update && \
+    apk upgrade --no-cache libssl3 libcrypto3 && \
+    apk add --no-cache dumb-init
 
 # Copy package files
 COPY package*.json ./
