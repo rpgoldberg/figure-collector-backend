@@ -94,7 +94,7 @@ COPY package*.json ./
 
 # Install production dependencies only
 # Using --ignore-scripts for security to prevent execution of npm scripts
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # Copy built application from builder
 # Files are owned by root:root (read-only for non-root)
