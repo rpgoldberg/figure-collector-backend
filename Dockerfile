@@ -9,16 +9,14 @@ FROM node:20-alpine AS base
 WORKDIR /app
 
 # Update repositories and upgrade OpenSSL for latest security patches (fixes CVE-2025-9230)
+# Upgrade npm to latest version to fix cross-spawn 7.0.3 vulnerability (GHSA-3xgq-45jj-v275)
 RUN apk update && \
     apk upgrade --no-cache libssl3 libcrypto3 && \
-    apk add --no-cache dumb-init
+    apk add --no-cache dumb-init && \
+    npm install -g npm@latest
 
 # Copy package files
 COPY package*.json ./
-
-# DEBUG: Check what version we got from build context
-RUN echo "=== BASE STAGE: package-lock.json cross-spawn version ===" && \
-    grep -A3 '"node_modules/cross-spawn"' package-lock.json | grep '"version"' || echo "NOT FOUND"
 
 # ============================================================================
 # Development Stage - For local development with hot reload
@@ -84,8 +82,10 @@ LABEL org.opencontainers.image.vendor="Figure Collector Services"
 LABEL org.opencontainers.image.source="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
 
 # Update repositories and upgrade OpenSSL for latest security patches (fixes CVE-2025-9230)
+# Upgrade npm to latest version to fix cross-spawn 7.0.3 vulnerability (GHSA-3xgq-45jj-v275)
 RUN apk update && \
-    apk upgrade --no-cache libssl3 libcrypto3
+    apk upgrade --no-cache libssl3 libcrypto3 && \
+    npm install -g npm@latest
 
 # Install dumb-init and create non-root user in a single layer
 RUN apk add --no-cache dumb-init && \
@@ -100,16 +100,11 @@ RUN echo "Cache bust: ${CACHE_BUST}"
 # Copy package files
 COPY package*.json ./
 
-# DEBUG: Check what version in production stage BEFORE npm install
-RUN echo "=== PRODUCTION STAGE: package-lock.json BEFORE npm ci ===" && \
-    grep -A3 '"node_modules/cross-spawn"' package-lock.json | grep '"version"' || echo "NOT FOUND"
-
 # Install production dependencies only
 # Using --ignore-scripts for security to prevent execution of npm scripts
+# Remove package-lock.json after install to reduce image size
 RUN npm ci --omit=dev --ignore-scripts && \
     npm cache clean --force && \
-    echo "=== PRODUCTION STAGE: Checking if cross-spawn was installed ===" && \
-    ls node_modules/ | grep cross-spawn || echo "cross-spawn NOT in node_modules (good)" && \
     rm -f package-lock.json
 
 # Copy built application from builder

@@ -114,19 +114,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug - Check package-lock.json in git
-        run: |
-          echo "=== Checking cross-spawn version in checked-out package-lock.json ==="
-          grep -A3 '"node_modules/cross-spawn"' package-lock.json | grep '"version"' || echo "Not found in lock file"
-          echo "=== ALL cross-spawn references in package-lock.json ==="
-          grep -c '"cross-spawn"' package-lock.json || echo "0 references"
-          echo "=== Check for version 7.0.3 anywhere ==="
-          grep "7\.0\.3" package-lock.json | head -5 || echo "7.0.3 NOT found in lock file"
-          echo "=== Git HEAD ==="
-          git log -1 --oneline
-          echo "=== Check develop branch package-lock.json ==="
-          git show origin/develop:package-lock.json 2>/dev/null | grep -A3 '"node_modules/cross-spawn"' | grep '"version"' || echo "Develop branch: cross-spawn not found or different"
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -142,37 +129,18 @@ jobs:
             CACHE_BUST=${{ github.sha }}
           provenance: false
           sbom: false
-          # Force new cache scope to avoid old metadata
-          cache-from: type=gha,scope=clean-build-v2
-          cache-to: type=gha,mode=max,scope=clean-build-v2
-
-      - name: Debug - Inspect built image
-        run: |
-          echo "=== Files in /app ==="
-          docker run --rm local-scan:latest ls -la /app/
-          echo "=== Check if package-lock.json exists in image ==="
-          docker run --rm local-scan:latest sh -c "ls /app/package-lock.json 2>&1" || echo "NOT FOUND (good)"
-          echo "=== Count node_modules ==="
-          docker run --rm local-scan:latest sh -c "ls /app/node_modules 2>/dev/null | wc -l"
-          echo "=== Check for cross-spawn in image ==="
-          docker run --rm local-scan:latest sh -c "ls /app/node_modules | grep -i cross || echo 'NOT FOUND (good)'"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Install security tools
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-      - name: Debug - Check what Syft finds
-        run: |
-          echo "=== Syft packages found ==="
-          syft local-scan:latest -q 2>&1 | grep -i "cross-spawn" || echo "Syft: cross-spawn NOT found"
-          echo "=== Syft full catalog (first 50 npm packages) ==="
-          syft local-scan:latest -o json -q 2>&1 | jq '.artifacts[] | select(.type == "npm") | {name, version, locations}' | head -100
-
       - name: Generate SBOM
         run: |
-          syft local-scan:latest --exclude './var/**' --exclude './usr/**' -o spdx-json > sbom.spdx.json
-          syft local-scan:latest --exclude './var/**' --exclude './usr/**' -o cyclonedx-json > sbom.cyclonedx.json
+          syft local-scan:latest -o spdx-json > sbom.spdx.json
+          syft local-scan:latest -o cyclonedx-json > sbom.cyclonedx.json
 
       - name: Run vulnerability scan
         run: |
