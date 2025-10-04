@@ -97,7 +97,8 @@ COPY package*.json ./
 # Using --ignore-scripts for security to prevent execution of npm scripts
 RUN echo "Cache bust: ${CACHE_BUST}" && \
     npm ci --omit=dev --ignore-scripts && \
-    npm cache clean --force
+    npm cache clean --force && \
+    rm -f package-lock.json
 
 # Copy built application from builder
 # Files are owned by root:root (read-only for non-root)
