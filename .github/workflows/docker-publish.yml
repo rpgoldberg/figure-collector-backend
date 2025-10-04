@@ -158,6 +158,13 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
+      - name: Debug - Check what Syft finds
+        run: |
+          echo "=== Syft packages found ==="
+          syft local-scan:latest -q 2>&1 | grep -i "cross-spawn" || echo "Syft: cross-spawn NOT found"
+          echo "=== Syft full catalog (first 50 npm packages) ==="
+          syft local-scan:latest -o json -q 2>&1 | jq '.artifacts[] | select(.type == "npm") | {name, version, locations}' | head -100
+
       - name: Generate SBOM
         run: |
           syft local-scan:latest -o spdx-json > sbom.spdx.json
