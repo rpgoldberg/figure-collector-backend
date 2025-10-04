@@ -118,10 +118,14 @@ jobs:
         run: |
           echo "=== Checking cross-spawn version in checked-out package-lock.json ==="
           grep -A3 '"node_modules/cross-spawn"' package-lock.json | grep '"version"' || echo "Not found in lock file"
+          echo "=== ALL cross-spawn references in package-lock.json ==="
+          grep -c '"cross-spawn"' package-lock.json || echo "0 references"
+          echo "=== Check for version 7.0.3 anywhere ==="
+          grep "7\.0\.3" package-lock.json | head -5 || echo "7.0.3 NOT found in lock file"
           echo "=== Git HEAD ==="
           git log -1 --oneline
-          echo "=== Files changed in last commit ==="
-          git show --stat HEAD
+          echo "=== Check develop branch package-lock.json ==="
+          git show origin/develop:package-lock.json 2>/dev/null | grep -A3 '"node_modules/cross-spawn"' | grep '"version"' || echo "Develop branch: cross-spawn not found or different"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -172,7 +176,7 @@ jobs:
 
       - name: Run vulnerability scan
         run: |
-          grype sbom:sbom.spdx.json --fail-on high
+          grype local-scan:latest --fail-on high
 
       - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v4

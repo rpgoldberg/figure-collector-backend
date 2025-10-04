@@ -16,6 +16,10 @@ RUN apk update && \
 # Copy package files
 COPY package*.json ./
 
+# DEBUG: Check what version we got from build context
+RUN echo "=== BASE STAGE: package-lock.json cross-spawn version ===" && \
+    grep -A3 '"node_modules/cross-spawn"' package-lock.json | grep '"version"' || echo "NOT FOUND"
+
 # ============================================================================
 # Development Stage - For local development with hot reload
 # ============================================================================
@@ -96,10 +100,16 @@ RUN echo "Cache bust: ${CACHE_BUST}"
 # Copy package files
 COPY package*.json ./
 
+# DEBUG: Check what version in production stage BEFORE npm install
+RUN echo "=== PRODUCTION STAGE: package-lock.json BEFORE npm ci ===" && \
+    grep -A3 '"node_modules/cross-spawn"' package-lock.json | grep '"version"' || echo "NOT FOUND"
+
 # Install production dependencies only
 # Using --ignore-scripts for security to prevent execution of npm scripts
 RUN npm ci --omit=dev --ignore-scripts && \
     npm cache clean --force && \
+    echo "=== PRODUCTION STAGE: Checking if cross-spawn was installed ===" && \
+    ls node_modules/ | grep cross-spawn || echo "cross-spawn NOT in node_modules (good)" && \
     rm -f package-lock.json
 
 # Copy built application from builder
