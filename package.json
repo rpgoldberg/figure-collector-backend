@@ -45,6 +45,7 @@
     "typescript": "^5.2.2"
   },
   "overrides": {
-    "cross-spawn": "^7.0.5"
+    "cross-spawn": "^7.0.6",
+    "execa": "^9.6.0"
   }
 }
