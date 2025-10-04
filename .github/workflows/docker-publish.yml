@@ -141,10 +141,10 @@ jobs:
           build-args: |
             CACHE_BUST=${{ github.sha }}
           provenance: false
-          # Temporarily disabled cache to force fresh build
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
-          no-cache: true
+          sbom: false
+          # Force new cache scope to avoid old metadata
+          cache-from: type=gha,scope=clean-build-v2
+          cache-to: type=gha,mode=max,scope=clean-build-v2
 
       - name: Debug - Inspect built image
         run: |
