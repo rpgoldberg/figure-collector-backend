@@ -145,7 +145,7 @@ jobs:
 
       - name: Run vulnerability scan
         run: |
-          grype local-scan:latest --fail-on high
+          grype local-scan:latest --config .grype.yaml --fail-on high
 
       - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v4
