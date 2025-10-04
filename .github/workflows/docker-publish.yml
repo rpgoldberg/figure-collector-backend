@@ -125,10 +125,6 @@ jobs:
           push: false
           load: true
           tags: local-scan:latest
-          build-args: |
-            CACHE_BUST=${{ github.sha }}
-          provenance: false
-          sbom: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

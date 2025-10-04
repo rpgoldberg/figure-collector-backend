@@ -73,7 +73,6 @@ FROM node:20-alpine AS production
 # Build arguments for customization
 ARG GITHUB_ORG=rpgoldberg
 ARG GITHUB_REPO=figure-collector-backend
-ARG CACHE_BUST=1
 
 # Add labels for better tracking
 LABEL org.opencontainers.image.title="Figure Collector Backend"
@@ -94,18 +93,13 @@ RUN apk add --no-cache dumb-init && \
 
 WORKDIR /app
 
-# Cache bust to force fresh layer invalidation
-RUN echo "Cache bust: ${CACHE_BUST}"
-
 # Copy package files
 COPY package*.json ./
 
 # Install production dependencies only
 # Using --ignore-scripts for security to prevent execution of npm scripts
-# Remove package-lock.json after install to reduce image size
 RUN npm ci --omit=dev --ignore-scripts && \
-    npm cache clean --force && \
-    rm -f package-lock.json
+    npm cache clean --force
 
 # Copy built application from builder
 # Files are owned by root:root (read-only for non-root)
