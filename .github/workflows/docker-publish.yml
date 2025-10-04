@@ -114,6 +114,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug - Check package-lock.json in git
+        run: |
+          echo "=== Checking cross-spawn version in checked-out package-lock.json ==="
+          grep -A3 '"node_modules/cross-spawn"' package-lock.json | grep '"version"' || echo "Not found in lock file"
+          echo "=== Git HEAD ==="
+          git log -1 --oneline
+          echo "=== Files changed in last commit ==="
+          git show --stat HEAD
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -132,6 +141,17 @@ jobs:
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
           no-cache: true
+
+      - name: Debug - Inspect built image
+        run: |
+          echo "=== Files in /app ==="
+          docker run --rm local-scan:latest ls -la /app/
+          echo "=== Check if package-lock.json exists in image ==="
+          docker run --rm local-scan:latest sh -c "ls /app/package-lock.json 2>&1" || echo "NOT FOUND (good)"
+          echo "=== Count node_modules ==="
+          docker run --rm local-scan:latest sh -c "ls /app/node_modules 2>/dev/null | wc -l"
+          echo "=== Check for cross-spawn in image ==="
+          docker run --rm local-scan:latest sh -c "ls /app/node_modules | grep -i cross || echo 'NOT FOUND (good)'"
 
       - name: Install security tools
         run: |
