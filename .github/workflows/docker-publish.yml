@@ -127,8 +127,10 @@ jobs:
           tags: local-scan:latest
           build-args: |
             CACHE_BUST=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Temporarily disabled cache to force fresh build
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+          no-cache: true
 
       - name: Install security tools
         run: |
