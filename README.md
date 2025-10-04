@@ -60,6 +60,31 @@ npx jest tests/integration/figures.test.ts --watch
 npm run test:coverage
 ```
 
+### Docker
+
+The service uses a multi-stage Dockerfile with the following build targets:
+
+```bash
+# Development (with hot reload)
+docker build --target development -t backend:dev .
+docker run -p 5070:5070 -e PORT=5070 backend:dev
+
+# Test environment
+docker build --target test -t backend:test .
+docker run backend:test
+
+# Production (default)
+docker build -t backend:prod .
+docker run -p 5050:5050 -e PORT=5050 backend:prod
+```
+
+**Available stages:**
+- `base`: Node.js with Alpine Linux and dumb-init
+- `development`: Includes devDependencies and nodemon for hot reload
+- `test`: Test environment with Jest
+- `builder`: Compiles TypeScript to JavaScript
+- `production`: Optimized image with only production dependencies (default)
+
 ## API Endpoints
 
 **Infrastructure Endpoints** (accessed directly via nginx proxy)
