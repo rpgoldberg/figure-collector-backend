@@ -127,6 +127,7 @@ jobs:
           tags: local-scan:latest
           build-args: |
             CACHE_BUST=${{ github.sha }}
+          provenance: false
           # Temporarily disabled cache to force fresh build
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
