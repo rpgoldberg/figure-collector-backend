@@ -4,7 +4,7 @@
 # ============================================================================
 # Base Stage - Common foundation for all stages
 # ============================================================================
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 WORKDIR /app
 
@@ -68,7 +68,7 @@ RUN npm run build
 # ============================================================================
 # Production Stage - Optimized runtime image
 # ============================================================================
-FROM node:20-alpine AS production
+FROM node:24-alpine AS production
 
 # Build arguments for customization
 ARG GITHUB_ORG=rpgoldberg
