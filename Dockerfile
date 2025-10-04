@@ -90,13 +90,15 @@ RUN apk add --no-cache dumb-init && \
 
 WORKDIR /app
 
+# Cache bust to force fresh layer invalidation
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 # Copy package files
 COPY package*.json ./
 
 # Install production dependencies only
 # Using --ignore-scripts for security to prevent execution of npm scripts
-RUN echo "Cache bust: ${CACHE_BUST}" && \
-    npm ci --omit=dev --ignore-scripts && \
+RUN npm ci --omit=dev --ignore-scripts && \
     npm cache clean --force && \
     rm -f package-lock.json
 
