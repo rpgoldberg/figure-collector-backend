@@ -78,6 +78,10 @@ LABEL org.opencontainers.image.description="Backend API service for Figure Colle
 LABEL org.opencontainers.image.vendor="Figure Collector Services"
 LABEL org.opencontainers.image.source="https://github.com/${GITHUB_ORG}/${GITHUB_REPO}"
 
+# Update repositories and upgrade OpenSSL for latest security patches (fixes CVE-2025-9230)
+RUN apk update && \
+    apk upgrade --no-cache libssl3 libcrypto3
+
 # Install dumb-init and create non-root user in a single layer
 RUN apk add --no-cache dumb-init && \
     addgroup -g 1001 -S nodejs && \
