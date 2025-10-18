@@ -60,11 +60,36 @@ npx jest tests/integration/figures.test.ts --watch
 npm run test:coverage
 ```
 
+### Docker
+
+The service uses a multi-stage Dockerfile with the following build targets:
+
+```bash
+# Development (with hot reload)
+docker build --target development -t backend:dev .
+docker run -p 5070:5070 -e PORT=5070 backend:dev
+
+# Test environment
+docker build --target test -t backend:test .
+docker run backend:test
+
+# Production (default)
+docker build -t backend:prod .
+docker run -p 5050:5050 -e PORT=5050 backend:prod
+```
+
+**Available stages:**
+- `base`: Node.js with Alpine Linux and dumb-init
+- `development`: Includes devDependencies and nodemon for hot reload
+- `test`: Test environment with Jest
+- `builder`: Compiles TypeScript to JavaScript
+- `production`: Optimized image with only production dependencies (default)
+
 ## API Endpoints
 
 **Infrastructure Endpoints** (accessed directly via nginx proxy)
-- `POST /register-service` - Service registration (used by frontend)
-- `GET /version` - Aggregated version info with validation
+- `POST /register-frontend` - Frontend registration proxy (forwards to Version Manager with auth)
+- `GET /version` - Aggregated version info from Version Manager
 - `GET /health` - Service health check
 
 **Business Logic APIs** (accessed via `/api` prefix through nginx)
@@ -102,6 +127,14 @@ Note: The nginx frontend proxy strips `/api` prefix, so backend endpoints don't 
 - `ROTATE_REFRESH_TOKENS`: Enable refresh token rotation for enhanced security (default: false)
 
 **Security Note:** Generate secure secrets using: `openssl rand -base64 32`
+
+**Service Registration:**
+- `VERSION_MANAGER_URL`: URL of Version Manager service (default: http://version-manager:3001)
+- `SERVICE_AUTH_TOKEN`: Authentication token for service registration (required for production)
+
+**Debug Logging:**
+- `DEBUG`: Enable debug namespaces (e.g., `backend:*`, `backend:auth`, `backend:registration`)
+- `SERVICE_AUTH_TOKEN_DEBUG`: Show partial tokens in logs for debugging (default: false)
 
 **No longer required:**
 - `FRONTEND_HOST`, `FRONTEND_PORT`: Removed due to self-registration architecture

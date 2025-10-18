@@ -71,7 +71,8 @@ npm run test:search
 ```bash
 # For Atlas mode testing
 export TEST_MODE=atlas
-export ATLAS_TEST_URI="mongodb+srv://user:pass@cluster.mongodb.net/test-db"
+# EXAMPLE ONLY - Replace with your actual MongoDB Atlas URI
+export ATLAS_TEST_URI="mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster.mongodb.net/test-db"
 
 # For memory mode (default)
 export TEST_MODE=memory
@@ -184,7 +185,8 @@ The mock implementation aims to closely simulate Atlas Search behavior:
 2. **Atlas Connection Issues**
    ```bash
    # Verify Atlas URI format
-   mongodb+srv://username:password@cluster.mongodb.net/database
+   # EXAMPLE FORMAT - Not real credentials
+   mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster.mongodb.net/database
    ```
 
 3. **Test Timeouts**

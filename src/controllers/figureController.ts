@@ -134,7 +134,7 @@ const scrapeDataFromMFCWithAxios = async (mfcLink: string): Promise<MFCScrapedDa
 const scrapeDataFromMFC = async (mfcLink: string): Promise<MFCScrapedData> => {
   console.log(`[MFC MAIN] Starting scrape via scraper service for: ${mfcLink}`);
   
-  const scraperServiceUrl = process.env.SCRAPER_SERVICE_URL || 'http://page-scraper-dev:3000';
+  const scraperServiceUrl = process.env.SCRAPER_SERVICE_URL || 'http://page-scraper-dev:3000'; // NOSONAR
   
   try {
     console.log(`[MFC MAIN] Calling scraper service at: ${scraperServiceUrl}`);
