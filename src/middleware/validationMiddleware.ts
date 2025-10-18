@@ -75,7 +75,13 @@ export const validateRequest = (schema: Joi.ObjectSchema, source: 'body' | 'quer
 
     // Update request object with converted values
     if (source === 'query') {
-      req.query = value;
+      // Express v5 made req.query immutable, so we need to redefine it
+      Object.defineProperty(req, 'query', {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
     } else {
       req.body = value;
     }
