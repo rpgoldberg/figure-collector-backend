@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import Figure, { IFigure } from '../models/Figure';
 import mongoose from 'mongoose';
 import axios from 'axios';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 
 interface MFCScrapedData {
   imageUrl?: string;
