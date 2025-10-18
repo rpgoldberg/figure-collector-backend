@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IRefreshToken extends Document {
+  _id: mongoose.Types.ObjectId;
   user: mongoose.Types.ObjectId;
   token: string;
   expiresAt: Date;
@@ -25,8 +26,7 @@ const refreshTokenSchema = new Schema<IRefreshToken>({
   },
   expiresAt: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   createdAt: {
     type: Date,
