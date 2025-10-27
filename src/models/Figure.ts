@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IFigure extends Document {
+  _id: mongoose.Types.ObjectId;
   manufacturer: string;
   name: string;
   scale: string;
