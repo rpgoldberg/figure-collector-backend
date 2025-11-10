@@ -3,6 +3,7 @@ import cors from 'cors';
 import figureRoutes from '../../src/routes/figureRoutes';
 import userRoutes from '../../src/routes/userRoutes';
 import authRoutes from '../../src/routes/authRoutes';
+import searchRoutes from '../../src/routes/searchRoutes';
 
 // Create test app
 export const createTestApp = () => {
@@ -17,6 +18,7 @@ export const createTestApp = () => {
   app.use('/auth', authRoutes);
   app.use('/figures', figureRoutes);
   app.use('/users', userRoutes);
+  app.use('/api/search', searchRoutes);
 
   // Health check endpoint
   app.get('/health', (req, res) => {
