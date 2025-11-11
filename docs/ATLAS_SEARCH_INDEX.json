@@ -43,24 +43,9 @@
           }
         }
       },
-      "series": {
+      "scale": {
         "type": "string",
-        "analyzer": "lucene.standard",
-        "multi": {
-          "autocomplete": {
-            "type": "autocomplete",
-            "analyzer": "lucene.whitespace",
-            "tokenization": "edgeGram",
-            "minGrams": 2,
-            "maxGrams": 15,
-            "foldDiacritics": true
-          },
-          "ngram": {
-            "type": "string",
-            "analyzer": "lucene.standard",
-            "searchAnalyzer": "lucene.keyword"
-          }
-        }
+        "analyzer": "lucene.keyword"
       },
       "userId": {
         "type": "objectId"
