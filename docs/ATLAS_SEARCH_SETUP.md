@@ -294,20 +294,40 @@ When we add new fields in v2.1.0 schema evolution, you'll need to update the ind
 
 ```json
 {
-  "name": "figures_search",
   "mappings": {
     "dynamic": false,
     "fields": {
-      "name": {
-        "type": "string",
-        "multi": {
-          "autocomplete": { /* edge n-gram tokenization */ },
-          "ngram": { /* partial word matching */ }
+      "name": [
+        {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        },
+        {
+          "type": "autocomplete",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15
         }
+      ],
+      "manufacturer": [
+        {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        },
+        {
+          "type": "autocomplete",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15
+        }
+      ],
+      "scale": {
+        "type": "string",
+        "analyzer": "lucene.keyword"
       },
-      "manufacturer": { /* same as name */ },
-      "scale": { "type": "string", "analyzer": "lucene.keyword" },
-      "userId": { "type": "objectId" }
+      "userId": {
+        "type": "objectId"
+      }
     }
   }
 }
@@ -315,9 +335,10 @@ When we add new fields in v2.1.0 schema evolution, you'll need to update the ind
 
 **Key Features**:
 - **Autocomplete**: Edge n-gram (2-15 chars) for word-wheel search
-- **Partial Match**: N-gram analyzer for substring matching
+- **Text Search**: Standard analyzer for partial word matching
 - **User Isolation**: `userId` filter ensures users only see their figures
 - **Dynamic Mapping OFF**: Only specified fields are indexed (saves resources)
+- **Array-based field definitions**: Each field can have multiple analyzers applied automatically
 
 ---
 

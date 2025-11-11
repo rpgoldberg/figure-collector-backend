@@ -1,48 +1,35 @@
 {
-  "name": "figures_search",
-  "analyzer": "lucene.standard",
-  "searchAnalyzer": "lucene.standard",
   "mappings": {
     "dynamic": false,
     "fields": {
-      "name": {
-        "type": "string",
-        "analyzer": "lucene.standard",
-        "multi": {
-          "autocomplete": {
-            "type": "autocomplete",
-            "analyzer": "lucene.whitespace",
-            "tokenization": "edgeGram",
-            "minGrams": 2,
-            "maxGrams": 15,
-            "foldDiacritics": true
-          },
-          "ngram": {
-            "type": "string",
-            "analyzer": "lucene.standard",
-            "searchAnalyzer": "lucene.keyword"
-          }
+      "name": [
+        {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        },
+        {
+          "type": "autocomplete",
+          "analyzer": "lucene.whitespace",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
         }
-      },
-      "manufacturer": {
-        "type": "string",
-        "analyzer": "lucene.standard",
-        "multi": {
-          "autocomplete": {
-            "type": "autocomplete",
-            "analyzer": "lucene.whitespace",
-            "tokenization": "edgeGram",
-            "minGrams": 2,
-            "maxGrams": 15,
-            "foldDiacritics": true
-          },
-          "ngram": {
-            "type": "string",
-            "analyzer": "lucene.standard",
-            "searchAnalyzer": "lucene.keyword"
-          }
+      ],
+      "manufacturer": [
+        {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        },
+        {
+          "type": "autocomplete",
+          "analyzer": "lucene.whitespace",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
         }
-      },
+      ],
       "scale": {
         "type": "string",
         "analyzer": "lucene.keyword"

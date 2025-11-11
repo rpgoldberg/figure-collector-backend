@@ -56,7 +56,7 @@ export const wordWheelSearch = async (
           index: 'figures_search',
           autocomplete: {
             query: searchQuery,
-            path: 'name.autocomplete',
+            path: 'name',
             fuzzy: {
               maxEdits: 1
             }
@@ -152,7 +152,7 @@ export const partialSearch = async (
     return results as unknown as IFigure[];
   }
 
-  // Atlas Search n-gram query for partial matching
+  // Atlas Search text query for partial matching
   try {
     const results = await Figure.aggregate([
       {
@@ -163,13 +163,13 @@ export const partialSearch = async (
               {
                 text: {
                   query: searchQuery,
-                  path: 'name.ngram'
+                  path: 'name'
                 }
               },
               {
                 text: {
                   query: searchQuery,
-                  path: 'manufacturer.ngram'
+                  path: 'manufacturer'
                 }
               }
             ]
