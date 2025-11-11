@@ -136,7 +136,7 @@ describe('Search Controller - getSuggestions', () => {
 
     expect(mockResponse.status).toHaveBeenCalledWith(500);
     expect(responseObject.success).toBe(false);
-    expect(responseObject.message).toBe('Server Error');
+    expect(responseObject.message).toBe('An error occurred while fetching search suggestions');
   });
 });
 
@@ -279,6 +279,6 @@ describe('Search Controller - getPartialMatches', () => {
 
     expect(mockResponse.status).toHaveBeenCalledWith(500);
     expect(responseObject.success).toBe(false);
-    expect(responseObject.message).toBe('Server Error');
+    expect(responseObject.message).toBe('An error occurred while fetching partial matches');
   });
 });

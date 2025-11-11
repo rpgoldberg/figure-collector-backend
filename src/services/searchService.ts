@@ -37,8 +37,7 @@ export const wordWheelSearch = async (
       userId,
       $or: [
         { name: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } },
-        { manufacturer: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } },
-        { location: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } }
+        { manufacturer: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } }
       ]
     })
       .limit(limit)
@@ -96,8 +95,7 @@ export const wordWheelSearch = async (
       userId,
       $or: [
         { name: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } },
-        { manufacturer: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } },
-        { location: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } }
+        { manufacturer: { $regex: `(^|\\s)${escapedQuery}`, $options: 'i' } }
       ]
     })
       .limit(limit)
@@ -140,8 +138,7 @@ export const partialSearch = async (
       userId,
       $or: [
         { name: { $regex: escapedQuery, $options: 'i' } },
-        { manufacturer: { $regex: escapedQuery, $options: 'i' } },
-        { location: { $regex: escapedQuery, $options: 'i' } }
+        { manufacturer: { $regex: escapedQuery, $options: 'i' } }
       ]
     })
       .skip(offset)
@@ -212,8 +209,7 @@ export const partialSearch = async (
       userId,
       $or: [
         { name: { $regex: escapedQuery, $options: 'i' } },
-        { manufacturer: { $regex: escapedQuery, $options: 'i' } },
-        { location: { $regex: escapedQuery, $options: 'i' } }
+        { manufacturer: { $regex: escapedQuery, $options: 'i' } }
       ]
     })
       .skip(offset)

@@ -62,8 +62,7 @@ export const getSuggestions = async (req: Request, res: Response) => {
     console.error('[SEARCH CONTROLLER] Error in getSuggestions:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: 'An error occurred while fetching search suggestions'
     });
   }
 };
@@ -142,8 +141,7 @@ export const getPartialMatches = async (req: Request, res: Response) => {
     console.error('[SEARCH CONTROLLER] Error in getPartialMatches:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: 'An error occurred while fetching partial matches'
     });
   }
 };
