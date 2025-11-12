@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import figureRoutes from './routes/figureRoutes';
 import userRoutes from './routes/userRoutes';
 import authRoutes from './routes/authRoutes';
+import searchRoutes from './routes/searchRoutes';
 import { connectDB } from './config/db';
 import { globalErrorHandler } from './middleware/validationMiddleware';
 import * as packageJson from '../package.json';
@@ -33,6 +34,7 @@ connectDB();
 app.use('/auth', authRoutes);
 app.use('/figures', figureRoutes);
 app.use('/users', userRoutes);
+app.use('/api/search', searchRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
